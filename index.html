@@ -645,7 +645,43 @@ function normalizeData(value){
 }
 let data = normalizeData(JSON.parse(localStorage.getItem("apoioData")) || JSON.parse(JSON.stringify(seed)));
 data.requests=[];
+const usesSupabase=()=>Boolean(supabaseClient&&currentSessionUser?.id);
+async function supabaseLoadData(){
+  const [beneficiaries,volunteers,supports,ratings]=await Promise.all([
+    supabaseClient.from("beneficiaries").select("*").order("id"),
+    supabaseClient.from("volunteers").select("*").order("id"),
+    supabaseClient.from("supports").select("*").order("scheduled_at"),
+    supabaseClient.from("ratings").select("*").order("id")
+  ]);
+  const failure=[beneficiaries,volunteers,supports,ratings].find(result=>result.error);
+  if(failure)throw failure.error;
+  return normalizeData({
+    beneficiarios:beneficiaries.data.map(item=>({id:item.id,profile_id:item.profile_id||null,name:item.name,birth:item.birth_date||"",priority:item.priority,phone:item.phone||"",email:item.email||"",address:item.address||"",city:item.city||"",need:item.need,emergency:item.emergency_contact||"",notes:item.notes||"})),
+    medicos:volunteers.data.map(item=>({id:item.id,name:item.name,spec:item.specialty,phone:item.phone||"",email:item.email||"",city:item.city||"",avail:item.availability,reg:item.registration_number||"",areas:item.areas||"",profile_id:item.profile_id})),
+    apoios:supports.data.map(item=>({id:item.id,date:item.scheduled_at,benef:item.beneficiary_id,med:item.volunteer_id,type:item.type,status:item.status,notes:item.notes||""})),
+    ratings:ratings.data.map(item=>({id:item.id,apoio_id:item.support_id,stars:item.stars,comment:item.comment||"",author_id:item.author_id}))
+  });
+}
+async function supabaseSaveData(){
+  const beneficiaryRows=data.beneficiarios.map(item=>({id:item.id,name:item.name,birth_date:item.birth||null,priority:item.priority,phone:item.phone||null,email:item.email||null,address:item.address||null,city:item.city||null,need:item.need,emergency_contact:item.emergency||null,notes:item.notes||null,profile_id:item.profile_id||null}));
+  const volunteerRows=data.medicos.map(item=>({id:item.id,name:item.name,specialty:item.spec,phone:item.phone||null,email:item.email||null,city:item.city||null,availability:item.avail,registration_number:item.reg||null,areas:item.areas||null,profile_id:item.profile_id||null}));
+  const supportRows=data.apoios.map(item=>({id:item.id,beneficiary_id:item.benef,volunteer_id:item.med||null,type:item.type,scheduled_at:item.date,status:item.status,notes:item.notes||null}));
+  for(const [table,rows] of [["beneficiaries",beneficiaryRows],["volunteers",volunteerRows],["supports",supportRows]]){
+    if(!rows.length)continue;
+    const result=await supabaseClient.from(table).upsert(rows);
+    if(result.error)throw result.error;
+  }
+}
+async function supabaseLoadRequests(){
+  const result=await supabaseClient.from("support_requests").select("*").order("created_at",{ascending:false});
+  if(result.error)throw result.error;
+  data.requests=(result.data||[]).map(item=>({...item,beneficiary_name:getBenef(item.beneficiary_id)?.name||item.beneficiary_name||"—"}));
+}
 async function loadData(showError=true){
+  if(usesSupabase()){
+    try{data=await supabaseLoadData();localStorage.setItem("apoioData",JSON.stringify(data));renderAll();return}
+    catch(error){console.warn(error);if(showError)toast("Não foi possível carregar os dados do Supabase.");return}
+  }
   try{
     const response=await fetch(apiUrl,{headers:{Accept:"application/json"}});
     if(!response.ok)throw new Error("Não foi possível carregar o SQLite.");
@@ -659,6 +695,10 @@ async function loadData(showError=true){
   }
 }
 async function loadRequestsData(showError=false){
+  if(usesSupabase()){
+    try{await supabaseLoadRequests();renderRequests();renderNotifications();return}
+    catch(error){console.warn(error);if(showError)toast("Não foi possível carregar os pedidos do Supabase.");return}
+  }
   try{
     const response=await fetch(`${apiUrl}?action=requests`,{headers:{Accept:"application/json"}});
     if(!response.ok)throw new Error("Não foi possível carregar os pedidos.");
@@ -678,6 +718,12 @@ function startAutoRefresh(){
   },10000);
 }
 async function loadUsers(){
+  if(usesSupabase()){
+    const result=await supabaseClient.from("profiles").select("id,username,name,email,phone,role,status,created_at").order("created_at",{ascending:false});
+    if(result.error){toast("Não foi possível carregar os perfis.");return}
+    usersTable.innerHTML=result.data.map(user=>`<tr><td><strong>${esc(user.name)}</strong></td><td>${esc(user.phone||"—")}<div class="small text-secondary">${esc(user.email||"")}</div></td><td>${esc(user.username||"—")}</td><td>${user.role==="medico"?"Médico voluntário":user.role==="beneficiario"?"Beneficiário":"Coordenação"}</td><td><span class="badge text-bg-${user.status==="approved"?"success":user.status==="pending"?"warning":"danger"} badge-soft">${user.status==="approved"?"Aprovado":user.status==="pending"?"Pendente":"Recusado"}</span></td><td>${user.role!=="admin"?`${user.status==="pending"?`<button class="btn btn-sm btn-success me-1" onclick="approveUser('${user.id}','approved')">Aprovar</button><button class="btn btn-sm btn-outline-danger me-1" onclick="approveUser('${user.id}','rejected')">Recusar</button>`:""}<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}','${esc(user.name)}')"><i class="bi bi-trash me-1"></i>Eliminar</button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos.</td></tr>';
+    return;
+  }
   let result;
   try{
     const response=await fetch(`${apiUrl}?action=users`,{headers:{Accept:"application/json"}});
@@ -687,6 +733,11 @@ async function loadUsers(){
   usersTable.innerHTML=result.users.map(user=>`<tr><td><strong>${esc(user.name)}</strong></td><td>${esc(user.phone||"—")}<div class="small text-secondary">${esc(user.email)}</div></td><td>${esc(user.username)}</td><td>${user.role==="medico"?"Médico voluntário":user.role==="beneficiario"?"Beneficiário":"Coordenação"}</td><td><span class="badge text-bg-${user.status==="approved"?"success":user.status==="pending"?"warning":"danger"} badge-soft">${user.status==="approved"?"Aprovado":user.status==="pending"?"Pendente":"Recusado"}</span></td><td>${user.role!=="admin"?`${user.status==="pending"?`<button class="btn btn-sm btn-success me-1" onclick="approveUser(${user.id},'approved')">Aprovar</button><button class="btn btn-sm btn-outline-danger me-1" onclick="approveUser(${user.id},'rejected')">Recusar</button>`:""}<button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id},'${esc(user.name)}')"><i class="bi bi-trash me-1"></i>Eliminar</button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos.</td></tr>';
 }
 async function approveUser(id,status){
+  if(usesSupabase()){
+    const result=await supabaseClient.from("profiles").update({status}).eq("id",id);
+    if(result.error){toast("Não foi possível atualizar a conta.");return}
+    await loadUsers();toast(status==="approved"?"Conta aprovada.":"Conta recusada.");return;
+  }
   try{
     const response=await fetch(`${apiUrl}?action=users`,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id,status})});
     if(!response.ok)throw new Error("API indisponível");
@@ -700,6 +751,11 @@ async function approveUser(id,status){
 }
 async function deleteUser(id,name){
   if(!confirm(`Eliminar o utilizador ${name}? O perfil e as consultas associadas também serão removidos.`))return;
+  if(usesSupabase()){
+    const result=await supabaseClient.from("profiles").delete().eq("id",id);
+    if(result.error){toast("Não foi possível eliminar o utilizador.");return}
+    await loadUsers();toast("Utilizador eliminado.");return;
+  }
   try{
     const response=await fetch(`${apiUrl}?action=users`,{method:"DELETE",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id})});
     const result=await response.json();
@@ -712,6 +768,9 @@ async function deleteUser(id,name){
 async function save(){
   localStorage.setItem("apoioData",JSON.stringify(data));
   backupData();
+  if(usesSupabase()){
+    try{await supabaseSaveData();return true}catch(error){console.error(error);toast("Não foi possível guardar no Supabase.");return false}
+  }
   try{
     const response=await fetch(apiUrl,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(data)});
     if(!response.ok)throw new Error("Não foi possível guardar no SQLite.");
@@ -894,6 +953,11 @@ document.querySelectorAll(".rating-star").forEach(button=>button.onclick=()=>{
 ratingForm.onsubmit=async event=>{
   event.preventDefault();
   if(!ratingStars.value){toast("Escolha uma classificação de 1 a 5 estrelas.");return;}
+  if(usesSupabase()){
+    const result=await supabaseClient.from("ratings").insert({support_id:Number(ratingSupportId.value),author_id:currentSessionUser.id,stars:Number(ratingStars.value),comment:ratingComment.value.trim()});
+    if(result.error){toast(result.error.message||"Não foi possível guardar a classificação.");return}
+    bootstrap.Modal.getInstance(ratingModal).hide();await loadData();toast("Obrigado pela sua avaliação.");return;
+  }
   const response=await fetch(`${apiUrl}?action=ratings`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({apoio_id:Number(ratingSupportId.value),stars:Number(ratingStars.value),comment:ratingComment.value.trim()})});
   const result=await response.json();
   if(!response.ok){toast(result.error||"Não foi possível guardar a classificação.");return;}
@@ -914,8 +978,20 @@ function renderRequests(){
   requestsTable.innerHTML=(data.requests||[]).map(request=>`<tr><td><strong>${esc(request.subject)}</strong><div class="small text-secondary text-truncate" style="max-width:320px">${esc(request.description)}</div></td><td>${esc(request.beneficiary_name||"—")}</td><td><span class="badge text-bg-${priorityBadge(request.priority)} badge-soft">${esc(request.priority)}</span></td><td>${formatDate(request.created_at)}</td><td>${canManage?`<select class="form-select form-select-sm" onchange="changeRequestStatus(${request.id},this.value)"><option ${request.status==="Pendente"?"selected":""}>Pendente</option><option ${request.status==="Em análise"?"selected":""}>Em análise</option><option ${request.status==="Aceite"?"selected":""}>Aceite</option><option ${request.status==="Concluído"?"selected":""}>Concluído</option><option ${request.status==="Cancelado"?"selected":""}>Cancelado</option></select>`:`<span class="badge text-bg-${request.status==="Concluído"?"success":request.status==="Cancelado"?"secondary":"primary"} badge-soft">${esc(request.status)}</span>`}</td><td>${canManage?`<button class="btn btn-sm btn-outline-primary" onclick="changeRequestStatus(${request.id},'Em análise')" title="Assumir pedido"><i class="bi bi-arrow-right-circle"></i></button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos de apoio.</td></tr>';
 }
 function openRequestModal(){requestForm.reset();bootstrap.Modal.getOrCreateInstance(requestModal).show();}
-requestForm.onsubmit=async event=>{event.preventDefault();const response=await fetch(`${apiUrl}?action=requests`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({subject:requestSubject.value.trim(),description:requestDescription.value.trim(),priority:requestPriority.value})});const result=await response.json();if(!response.ok){toast(result.error||"Não foi possível enviar o pedido.");return;}bootstrap.Modal.getInstance(requestModal).hide();await loadRequestsData(true);toast("Pedido de apoio enviado.");};
-async function changeRequestStatus(id,status){const response=await fetch(`${apiUrl}?action=requests`,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id,status})});if(!response.ok){toast("Não foi possível atualizar o pedido.");return;}await loadRequestsData(true);toast("Estado do pedido atualizado.");}
+requestForm.onsubmit=async event=>{
+  event.preventDefault();
+  if(usesSupabase()){
+    const ownBeneficiary=data.beneficiarios.find(item=>item.profile_id===currentSessionUser.id);
+    const result=await supabaseClient.from("support_requests").insert({beneficiary_id:ownBeneficiary?.id||null,subject:requestSubject.value.trim(),description:requestDescription.value.trim(),priority:requestPriority.value});
+    if(result.error){toast(result.error.message||"Não foi possível enviar o pedido.");return}
+    bootstrap.Modal.getInstance(requestModal).hide();await loadRequestsData(true);toast("Pedido de apoio enviado.");return;
+  }
+  const response=await fetch(`${apiUrl}?action=requests`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({subject:requestSubject.value.trim(),description:requestDescription.value.trim(),priority:requestPriority.value})});const result=await response.json();if(!response.ok){toast(result.error||"Não foi possível enviar o pedido.");return;}bootstrap.Modal.getInstance(requestModal).hide();await loadRequestsData(true);toast("Pedido de apoio enviado.");
+};
+async function changeRequestStatus(id,status){
+  if(usesSupabase()){const result=await supabaseClient.from("support_requests").update({status}).eq("id",id);if(result.error){toast("Não foi possível atualizar o pedido.");return}await loadRequestsData(true);toast("Estado do pedido atualizado.");return}
+  const response=await fetch(`${apiUrl}?action=requests`,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id,status})});if(!response.ok){toast("Não foi possível atualizar o pedido.");return;}await loadRequestsData(true);toast("Estado do pedido atualizado.");
+}
 
 function formatDate(s){const d=new Date(s);return Number.isNaN(d.getTime())?"—":d.toLocaleString("pt-PT",{dateStyle:"short",timeStyle:"short"})}
 function openRoute(id){
@@ -943,7 +1019,7 @@ function openBenefModal(id=null){
 }
 function editBenef(id){openBenefModal(id)}
 benefForm.onsubmit=e=>{e.preventDefault();const id=+benefId.value||nextId(data.beneficiarios), obj={id,name:bName.value,birth:bBirth.value,priority:bPriority.value,phone:bPhone.value,email:bEmail.value,address:bAddress.value,city:bCity.value,need:bNeed.value,emergency:bEmergency.value,notes:bNotes.value};const i=data.beneficiarios.findIndex(x=>x.id===id);i>=0?data.beneficiarios[i]=obj:data.beneficiarios.push(obj);save();bootstrap.Modal.getInstance(benefModal).hide();renderAll();toast("Beneficiário guardado com sucesso.");}
-function deleteBenef(id){if(confirm("Eliminar este beneficiário?")){data.beneficiarios=data.beneficiarios.filter(x=>x.id!==id);data.apoios=data.apoios.filter(x=>x.benef!==id);save();renderAll();toast("Beneficiário eliminado.");}}
+async function deleteBenef(id){if(confirm("Eliminar este beneficiário?")){if(usesSupabase()){const result=await supabaseClient.from("beneficiaries").delete().eq("id",id);if(result.error){toast("Não foi possível eliminar o beneficiário.");return}}data.beneficiarios=data.beneficiarios.filter(x=>x.id!==id);data.apoios=data.apoios.filter(x=>x.benef!==id);await save();renderAll();toast("Beneficiário eliminado.");}}
 
 function openMedModal(id=null){
  medForm.reset();medId.value=id||"";medModalTitle.textContent=id?"Editar médico voluntário":"Novo médico voluntário";
@@ -960,7 +1036,7 @@ async function toggleMedAvailability(id){
   toast(`${med.name} está agora ${med.avail.toLowerCase()}.`);
 }
 medForm.onsubmit=e=>{e.preventDefault();const id=+medId.value||nextId(data.medicos),obj={id,name:mName.value,spec:mSpec.value,phone:mPhone.value,email:mEmail.value,city:mCity.value,avail:mAvail.value,reg:mReg.value,areas:mAreas.value};const i=data.medicos.findIndex(x=>x.id===id);i>=0?data.medicos[i]=obj:data.medicos.push(obj);save();bootstrap.Modal.getInstance(medModal).hide();renderAll();toast("Médico guardado com sucesso.");}
-function deleteMed(id){if(confirm("Eliminar este médico? Os apoios associados também serão removidos.")){data.medicos=data.medicos.filter(x=>x.id!==id);data.apoios=data.apoios.filter(x=>x.med!==id);save();renderAll();toast("Médico eliminado.");}}
+async function deleteMed(id){if(confirm("Eliminar este médico? Os apoios associados também serão removidos.")){if(usesSupabase()){const result=await supabaseClient.from("volunteers").delete().eq("id",id);if(result.error){toast("Não foi possível eliminar o médico.");return}}data.medicos=data.medicos.filter(x=>x.id!==id);data.apoios=data.apoios.filter(x=>x.med!==id);await save();renderAll();toast("Médico eliminado.");}}
 
 function fillApoioSelects(){
   const beneficiaryId=currentSessionUser?.role==="beneficiario"?data.beneficiarios.find(b=>b.name===currentSessionUser.name&&b.email===currentSessionUser.email)?.id:null;
@@ -971,7 +1047,7 @@ function fillApoioSelects(){
 function openApoioModal(){if(!data.beneficiarios.length||!data.medicos.length){alert("Registe pelo menos um beneficiário e um médico antes de agendar.");return}fillApoioSelects();apoioForm.reset();if(currentSessionUser?.role==="beneficiario"){const beneficiary=data.beneficiarios.find(b=>b.name===currentSessionUser.name&&b.email===currentSessionUser.email);if(beneficiary)aBenef.value=beneficiary.id;}aDate.value=new Date(Date.now()+86400000).toISOString().slice(0,16);bootstrap.Modal.getOrCreateInstance(apoioModal).show();}
 apoioForm.onsubmit=e=>{e.preventDefault();data.apoios.push({id:nextId(data.apoios),date:aDate.value,benef:+aBenef.value,med:+aMed.value,type:aType.value,status:"Agendado",notes:aNotes.value});save();bootstrap.Modal.getInstance(apoioModal).hide();renderAll();toast("Apoio agendado com sucesso.");}
 function changeStatus(id,status){const a=data.apoios.find(x=>x.id===id);if(a){a.status=status;save();renderAll();toast("Estado atualizado.");}}
-function deleteApoio(id){if(confirm("Eliminar este apoio?")){data.apoios=data.apoios.filter(x=>x.id!==id);save();renderAll();toast("Apoio eliminado.");}}
+async function deleteApoio(id){if(confirm("Eliminar este apoio?")){if(usesSupabase()){const result=await supabaseClient.from("supports").delete().eq("id",id);if(result.error){toast("Não foi possível eliminar o apoio.");return}}data.apoios=data.apoios.filter(x=>x.id!==id);await save();renderAll();toast("Apoio eliminado.");}}
 function exportData(){
   backupData();
   const payload={exportedAt:new Date().toISOString(),application:"Apoio+",version:"2.0",data};
@@ -995,3 +1071,5 @@ renderAll();
 </script>
 </body>
 </html>
+
+

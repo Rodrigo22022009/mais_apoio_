@@ -23,7 +23,7 @@
 4. Copia [`config.example.js`](./config.example.js) para `config.js`.
 5. Coloca o URL e a chave em `config.js`.
 
-O ficheiro `config.js` está excluído do Git para não ser enviado por engano. A chave pública pode ser usada no frontend, desde que as políticas RLS do `schema.sql` estejam ativas. Nunca uses a `service_role` no HTML.
+O ficheiro `config.js` contém apenas a chave Publishable/anon, que é própria para frontend. A chave pública pode ser enviada para o GitHub, desde que as políticas RLS do `schema.sql` estejam ativas. Nunca uses a `service_role` no HTML.
 
 ## 4. Configurar autenticação
 
