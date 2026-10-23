@@ -62,4 +62,6 @@ Não tornes todos os utilizadores administradores.
 
 ## Estado atual da integração
 
-O projeto continua a funcionar sem configuração Supabase através do fallback local e do backend PHP/SQLite. O `schema.sql` prepara a base remota com autenticação e RLS. A migração final das chamadas existentes para o cliente Supabase deve ser feita depois de o projeto Supabase estar criado, para poder validar o URL, a chave e o comportamento real das políticas.
+O frontend já carrega o cliente Supabase e usa Supabase Auth quando o utilizador inicia sessão com email. O registo também cria a conta no Supabase quando é indicado um email. Os módulos de dados mantêm fallback local/PHP enquanto a migração completa das operações CRUD para as tabelas Supabase é validada.
+
+Se executaste uma versão anterior do `schema.sql`, executa novamente a secção da função e trigger `handle_new_user` para que username e telefone sejam copiados dos metadados do registo.

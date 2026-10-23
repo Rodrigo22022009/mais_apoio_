@@ -486,7 +486,10 @@
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1100"><div id="toast" class="toast align-items-center text-bg-success border-0"><div class="d-flex"><div class="toast-body" id="toastMsg">Operação concluída.</div><button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase/config.js"></script>
 <script>
+const supabaseClient=window.supabase?.createClient(window.SUPABASE_CONFIG.url,window.SUPABASE_CONFIG.publishableKey);
 document.getElementById("enterApp").onclick=()=>{
   document.getElementById("entryScreen").style.display="none";
   document.getElementById("authScreen").style.display="flex";
@@ -544,6 +547,14 @@ document.getElementById("registerForm").onsubmit=async event=>{
     role:document.getElementById("registerRole").value
   };
   try{
+    if(supabaseClient&&payload.email){
+      const {error}=await supabaseClient.auth.signUp({email:payload.email,password:payload.password,options:{data:{name:payload.name,username:payload.username,phone:payload.phone,role:payload.role}}});
+      if(error)throw error;
+      showAuthMessage("Conta criada no Supabase. Confirma o email e aguarda aprovação da coordenação.",true);
+      event.target.reset();
+      document.getElementById("authSwitch").click();
+      return;
+    }
     const response=await fetch(`${apiUrl}?action=register`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload)});
     if(!response.ok)throw new Error("API indisponível");
     const result=await response.json();
@@ -558,11 +569,25 @@ document.getElementById("registerForm").onsubmit=async event=>{
 document.getElementById("loginForm").onsubmit=async event=>{
   event.preventDefault();
   try{
+    const loginValue=loginUsername.value.trim();
+    if(supabaseClient&&loginValue.includes("@")){
+      const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginValue,password:loginPassword.value});
+      if(error)throw error;
+      const {data:profile,error:profileError}=await supabaseClient.from("profiles").select("id,name,email,phone,role,status").eq("id",data.user.id).single();
+      if(profileError)throw profileError;
+      if(profile.status!=="approved")throw new Error("A conta ainda aguarda aprovação da coordenação.");
+      currentSessionUser=profile;
+    }else{
     const response=await fetch(`${apiUrl}?action=login`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({username:loginUsername.value,password:loginPassword.value})});
     const result=await response.json();
     if(!response.ok){showAuthMessage(result.error||"Não foi possível iniciar sessão.");return;}
     currentSessionUser=result.user;
+    }
   }catch(error){
+    if(supabaseClient&&loginUsername.value.includes("@")){
+      showAuthMessage(error.message||"Não foi possível iniciar sessão.");
+      return;
+    }
     const result=localLogin(loginUsername.value,loginPassword.value);
     if(!result.ok){showAuthMessage(`${result.error} Modo GitHub: os dados ficam guardados neste navegador.`);return;}
     currentSessionUser=result.user;
@@ -970,5 +995,3 @@ renderAll();
 </script>
 </body>
 </html>
-
-
