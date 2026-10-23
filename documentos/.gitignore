@@ -2,3 +2,6 @@ backend/apoio.sqlite
 backend/apoio.sqlite-shm
 backend/apoio.sqlite-wal
 supabase/supabase.js
+.env
+.env.*
+!.env.example

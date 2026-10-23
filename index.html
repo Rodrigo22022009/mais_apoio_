@@ -64,6 +64,7 @@
       <div class="mb-3"><label class="form-label" for="loginUsername">Utilizador</label><input id="loginUsername" class="form-control" autocomplete="username" required></div>
       <div class="mb-3"><label class="form-label" for="loginPassword">Palavra-passe</label><input id="loginPassword" type="password" class="form-control" autocomplete="current-password" required></div>
       <button class="btn btn-primary w-100">Entrar</button>
+      <button id="forgotPassword" class="btn btn-link w-100 mt-2" type="button">Esqueci-me da palavra-passe</button>
     </form>
     <form id="registerForm" class="d-none">
       <div class="mb-3"><label class="form-label" for="registerName">Nome completo</label><input id="registerName" class="form-control" required></div>
@@ -317,6 +318,7 @@
   <div class="modal-header"><h5 class="modal-title">Agendar apoio</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body"><div class="row g-3">
     <div class="col-md-6"><label class="form-label">Data *</label><input id="aDate" type="datetime-local" class="form-control" required></div>
+    <div class="col-md-6"><label class="form-label" for="aDuration">Duração *</label><select id="aDuration" class="form-select"><option value="30">30 minutos</option><option value="60" selected>1 hora</option><option value="90">1 hora e 30 minutos</option><option value="120">2 horas</option></select></div>
     <div class="col-md-6"><label class="form-label">Tipo *</label><select id="aType" class="form-select"><option>Consulta domiciliária</option><option>Acompanhamento</option><option>Avaliação</option><option>Seguimento</option></select></div>
     <div class="col-12"><label class="form-label">Beneficiário *</label><select id="aBenef" class="form-select" required></select></div>
     <div class="col-12"><label class="form-label">Médico voluntário *</label><select id="aMed" class="form-select" required></select></div>
@@ -351,4 +353,3 @@
 <script src="assets/js/app.js"></script>
 </body>
 </html>
-

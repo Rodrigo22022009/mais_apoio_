@@ -66,6 +66,7 @@ create table if not exists public.supports (
   volunteer_id bigint references public.volunteers(id) on delete set null,
   type text not null default 'Cuidados médicos',
   scheduled_at timestamptz not null,
+  duration_minutes integer not null default 60 check (duration_minutes between 15 and 240),
   status text not null default 'Agendado'
     check (status in ('Agendado', 'Realizado', 'Cancelado')),
   notes text,

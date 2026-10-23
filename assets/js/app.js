@@ -9,6 +9,7 @@ const localUsersKey="apoioUsers";
 let currentSessionUser=null;
 let refreshTimer=null;
 let calendarViewDate=new Date();
+const authRedirectUrl=window.location.origin+window.location.pathname;
 function localUsers(){
   let stored=null;
   try{stored=JSON.parse(localStorage.getItem(localUsersKey)||"null");}catch(error){localStorage.removeItem(localUsersKey);}
@@ -45,6 +46,12 @@ document.getElementById("authSwitch").onclick=()=>{
   document.getElementById("authIntro").textContent=registerVisible?"A sua conta ficará pendente até ser aprovada pela coordenação.":"Use o seu utilizador e palavra-passe.";
   document.getElementById("authSwitch").textContent=registerVisible?"Já tenho conta":"Ainda não tenho conta";
   document.getElementById("authMessage").className="alert d-none";
+};
+document.getElementById("forgotPassword").onclick=async()=>{
+  const email=loginUsername.value.trim();
+  if(!supabaseClient||!email.includes("@")){showAuthMessage("Introduza o email da conta para recuperar a palavra-passe.");return;}
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});
+  showAuthMessage(error?.message||"Se o email existir, receberá uma ligação para redefinir a palavra-passe.",!error);
 };
 document.getElementById("registerForm").onsubmit=async event=>{
   event.preventDefault();
@@ -180,14 +187,14 @@ async function supabaseLoadData(){
   return normalizeData({
     beneficiarios:beneficiaries.data.map(item=>({id:item.id,profile_id:item.profile_id||null,name:item.name,birth:item.birth_date||"",priority:item.priority,phone:item.phone||"",email:item.email||"",address:item.address||"",city:item.city||"",need:item.need,emergency:item.emergency_contact||"",notes:item.notes||""})),
     medicos:volunteers.data.map(item=>({id:item.id,name:item.name,spec:item.specialty,phone:item.phone||"",email:item.email||"",city:item.city||"",avail:item.availability,reg:item.registration_number||"",areas:item.areas||"",profile_id:item.profile_id})),
-    apoios:supports.data.map(item=>({id:item.id,date:item.scheduled_at,benef:item.beneficiary_id,med:item.volunteer_id,type:item.type,status:item.status,notes:item.notes||""})),
+    apoios:supports.data.map(item=>({id:item.id,date:item.scheduled_at,duration:Number(item.duration_minutes)||60,benef:item.beneficiary_id,med:item.volunteer_id,type:item.type,status:item.status,notes:item.notes||""})),
     ratings:ratings.data.map(item=>({id:item.id,apoio_id:item.support_id,stars:item.stars,comment:item.comment||"",author_id:item.author_id}))
   });
 }
 async function supabaseSaveData(){
   const beneficiaryRows=data.beneficiarios.map(item=>({id:item.id,name:item.name,birth_date:item.birth||null,priority:item.priority,phone:item.phone||null,email:item.email||null,address:item.address||null,city:item.city||null,need:item.need,emergency_contact:item.emergency||null,notes:item.notes||null,profile_id:item.profile_id||null}));
   const volunteerRows=data.medicos.map(item=>({id:item.id,name:item.name,specialty:item.spec,phone:item.phone||null,email:item.email||null,city:item.city||null,availability:item.avail,registration_number:item.reg||null,areas:item.areas||null,profile_id:item.profile_id||null}));
-  const supportRows=data.apoios.map(item=>({id:item.id,beneficiary_id:item.benef,volunteer_id:item.med||null,type:item.type,scheduled_at:item.date,status:item.status,notes:item.notes||null}));
+  const supportRows=data.apoios.map(item=>({id:item.id,beneficiary_id:item.benef,volunteer_id:item.med||null,type:item.type,scheduled_at:item.date,duration_minutes:Number(item.duration)||60,status:item.status,notes:item.notes||null}));
   for(const [table,rows] of [["beneficiaries",beneficiaryRows],["volunteers",volunteerRows],["supports",supportRows]]){
     if(!rows.length)continue;
     const result=await supabaseClient.from(table).upsert(rows);
@@ -291,7 +298,7 @@ async function save(){
   localStorage.setItem("apoioData",JSON.stringify(data));
   backupData();
   if(usesSupabase()){
-    try{await supabaseSaveData();return true}catch(error){console.error(error);toast("Não foi possível guardar no Supabase.");return false}
+    try{await supabaseSaveData();return true}catch(error){console.error(error);toast(error.code==="23P01"?"O médico já está ocupado nesse horário.":"Não foi possível guardar no Supabase.");return false}
   }
   try{
     const response=await fetch(apiUrl,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(data)});
@@ -414,7 +421,12 @@ function renderCalendar(supports){
 }
 function getVisibleSupports(){
   const beneficiaryId=currentSessionUser?.role==="beneficiario"?data.beneficiarios.find(b=>b.name===currentSessionUser.name&&b.email===currentSessionUser.email)?.id:null;
-  return beneficiaryId?data.apoios.filter(a=>a.benef===beneficiaryId):data.apoios;
+  if(beneficiaryId)return data.apoios.filter(a=>a.benef===beneficiaryId);
+  if(currentSessionUser?.role==="medico"){
+    const volunteer=data.medicos.find(item=>item.profile_id===currentSessionUser.id);
+    return volunteer?data.apoios.filter(a=>a.med===volunteer.id):[];
+  }
+  return data.apoios;
 }
 function matchesApoioFilters(a){
   const query=(apoioSearch?.value||"").trim().toLowerCase();
@@ -567,21 +579,33 @@ function fillApoioSelects(){
   aMed.innerHTML='<option value="">Selecione...</option>'+data.medicos.filter(m=>m.avail==="Disponível").map(m=>`<option value="${m.id}">${esc(m.name)} — ${esc(m.spec)}</option>`).join("");
 }
 function openApoioModal(){if(!data.beneficiarios.length||!data.medicos.length){alert("Registe pelo menos um beneficiário e um médico antes de agendar.");return}fillApoioSelects();apoioForm.reset();if(currentSessionUser?.role==="beneficiario"){const beneficiary=data.beneficiarios.find(b=>b.name===currentSessionUser.name&&b.email===currentSessionUser.email);if(beneficiary)aBenef.value=beneficiary.id;}aDate.value=new Date(Date.now()+86400000).toISOString().slice(0,16);bootstrap.Modal.getOrCreateInstance(apoioModal).show();}
-function hasMedScheduleConflict(medId,date,idToIgnore=null){
-  const selectedTime=new Date(date).getTime();
-  return Number.isFinite(selectedTime)&&data.apoios.some(item=>item.med===medId&&item.id!==idToIgnore&&item.status!=="Cancelado"&&new Date(item.date).getTime()===selectedTime);
+function hasMedScheduleConflict(medId,date,duration,idToIgnore=null){
+ const selectedStart=new Date(date).getTime();
+ const selectedEnd=selectedStart+(Number(duration)||60)*60000;
+ return Number.isFinite(selectedStart)&&data.apoios.some(item=>{
+   if(item.med!==medId||item.id===idToIgnore||item.status==="Cancelado")return false;
+   const start=new Date(item.date).getTime();
+   const end=start+(Number(item.duration)||60)*60000;
+   return selectedStart<end&&start<selectedEnd;
+ });
 }
 apoioForm.onsubmit=async e=>{
   e.preventDefault();
   const selectedDate=aDate.value;
   const selectedMed=+aMed.value;
-  if(hasMedScheduleConflict(selectedMed,selectedDate)){
+  const duration=Number(aDuration.value)||60;
+  if(new Date(selectedDate).getTime()<=Date.now()){
+    alert("A consulta tem de ser marcada para uma data e hora futuras.");
+    aDate.focus();
+    return;
+  }
+  if(hasMedScheduleConflict(selectedMed,selectedDate,duration)){
     const doctorName=getMed(selectedMed)?.name||"O médico selecionado";
     alert(`${doctorName} já tem um apoio agendado para ${formatDate(selectedDate)}. Escolha outro horário ou outro médico.`);
     aDate.focus();
     return;
   }
-  data.apoios.push({id:nextId(data.apoios),date:selectedDate,benef:+aBenef.value,med:selectedMed,type:aType.value,status:"Agendado",notes:aNotes.value});
+  data.apoios.push({id:nextId(data.apoios),date:selectedDate,duration,benef:+aBenef.value,med:selectedMed,type:aType.value,status:"Agendado",notes:aNotes.value});
   const saved=await save();
   if(!saved&&usesSupabase()){data.apoios.pop();renderAll();return;}
   bootstrap.Modal.getInstance(apoioModal).hide();
@@ -606,7 +630,7 @@ function exportCsv(){
   const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`apoio-plus-relatorio-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(url);toast("Relatório CSV exportado.");
 }
 async function resetData(){if(confirm("Repor todos os dados de demonstração?")){localStorage.removeItem("apoioData");data=JSON.parse(JSON.stringify(seed));try{const response=await fetch(apiUrl,{method:"DELETE",headers:{Accept:"application/json"}});if(!response.ok)throw new Error("Não foi possível limpar o SQLite.");}catch(error){console.warn(error);}await save();renderAll();toast("Dados repostos.");}}
-logoutButton.onclick=async()=>{try{await fetch(`${apiUrl}?action=logout`,{method:"POST",headers:{Accept:"application/json"}});}finally{currentSessionUser=null;clearInterval(refreshTimer);document.getElementById("appShell").style.display="none";document.getElementById("authScreen").style.display="none";document.getElementById("roleScreen").style.display="none";document.getElementById("entryScreen").style.display="flex";toast("Sessão terminada.");}};
+logoutButton.onclick=async()=>{try{if(supabaseClient)await supabaseClient.auth.signOut();await fetch(`${apiUrl}?action=logout`,{method:"POST",headers:{Accept:"application/json"}});}finally{currentSessionUser=null;clearInterval(refreshTimer);document.getElementById("appShell").style.display="none";document.getElementById("authScreen").style.display="none";document.getElementById("roleScreen").style.display="none";document.getElementById("entryScreen").style.display="flex";toast("Sessão terminada.");}};
 benefSearch.oninput=renderBenef;benefPriority.onchange=renderBenef;medSearch.oninput=renderMed;medAvailability.onchange=renderMed;
 apoioSearch.oninput=renderApoios;apoioStatus.onchange=renderApoios;apoioDateFilter.onchange=renderApoios;
 renderAll();
