@@ -567,12 +567,15 @@ function fillApoioSelects(){
   aMed.innerHTML='<option value="">Selecione...</option>'+data.medicos.filter(m=>m.avail==="Disponível").map(m=>`<option value="${m.id}">${esc(m.name)} — ${esc(m.spec)}</option>`).join("");
 }
 function openApoioModal(){if(!data.beneficiarios.length||!data.medicos.length){alert("Registe pelo menos um beneficiário e um médico antes de agendar.");return}fillApoioSelects();apoioForm.reset();if(currentSessionUser?.role==="beneficiario"){const beneficiary=data.beneficiarios.find(b=>b.name===currentSessionUser.name&&b.email===currentSessionUser.email);if(beneficiary)aBenef.value=beneficiary.id;}aDate.value=new Date(Date.now()+86400000).toISOString().slice(0,16);bootstrap.Modal.getOrCreateInstance(apoioModal).show();}
+function hasMedScheduleConflict(medId,date,idToIgnore=null){
+  const selectedTime=new Date(date).getTime();
+  return Number.isFinite(selectedTime)&&data.apoios.some(item=>item.med===medId&&item.id!==idToIgnore&&item.status!=="Cancelado"&&new Date(item.date).getTime()===selectedTime);
+}
 apoioForm.onsubmit=async e=>{
   e.preventDefault();
   const selectedDate=aDate.value;
   const selectedMed=+aMed.value;
-  const conflictingSupport=data.apoios.find(item=>item.med===selectedMed&&item.date===selectedDate&&item.status!=="Cancelado");
-  if(conflictingSupport){
+  if(hasMedScheduleConflict(selectedMed,selectedDate)){
     const doctorName=getMed(selectedMed)?.name||"O médico selecionado";
     alert(`${doctorName} já tem um apoio agendado para ${formatDate(selectedDate)}. Escolha outro horário ou outro médico.`);
     aDate.focus();
