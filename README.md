@@ -2,6 +2,15 @@
 
 Plataforma de apoio domiciliário para beneficiários, médicos voluntários e coordenação.
 
+## Estrutura do projeto
+
+- [`index.html`](./index.html) — estrutura das páginas e componentes da aplicação.
+- [`assets/css/styles.css`](./assets/css/styles.css) — estilos visuais próprios da aplicação.
+- [`assets/js/app.js`](./assets/js/app.js) — comportamento, autenticação, operações CRUD e integração com Supabase.
+- [`supabase/config.js`](./supabase/config.js) — URL e chave pública do projeto Supabase.
+- [`supabase/schema.sql`](./supabase/schema.sql) — tabelas, funções e políticas RLS.
+- [`backend/api.php`](./backend/api.php) — backend opcional PHP/SQLite para execução local.
+
 ## Funcionalidades
 
 - Entrada por perfil: beneficiário, médico voluntário e coordenação.
