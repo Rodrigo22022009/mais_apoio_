@@ -1,0 +1,974 @@
+﻿<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>+Apoio — Plataforma de Apoio Domiciliário</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root { --sidebar:#172033; --primary:#0d6efd; --soft:#f5f7fb; }
+    body { background:var(--soft); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+    .sidebar { min-height:100vh; background:var(--sidebar); color:#fff; position:sticky; top:0; }
+    .brand { font-weight:700; letter-spacing:.2px; }
+    .nav-link { color:#b9c3d5; border-radius:10px; margin:3px 0; }
+    .nav-link:hover,.nav-link.active { color:#fff; background:rgba(255,255,255,.1); }
+    .content { min-height:100vh; }
+    .stat-card,.app-card { border:0; border-radius:16px; box-shadow:0 4px 18px rgba(25,40,70,.06); }
+    .stat-icon { width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.3rem; }
+    .page-section { display:none; }
+    .page-section.active { display:block; }
+    .table thead th { white-space:nowrap; font-size:.82rem; color:#6c757d; text-transform:uppercase; letter-spacing:.03em; }
+    .avatar { width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#e8f1ff;color:#0d6efd;font-weight:700; }
+    .badge-soft { padding:.45em .7em; border-radius:20px; }
+    .empty { padding:50px 20px; text-align:center; color:#7a8494; }
+
+    .topbar { background:rgba(255,255,255,.82); backdrop-filter:blur(12px); border:1px solid rgba(0,0,0,.05); border-radius:18px; padding:14px 18px; }
+    .stat-card { transition:transform .2s ease, box-shadow .2s ease; overflow:hidden; }
+    .stat-card:hover { transform:translateY(-3px); box-shadow:0 12px 28px rgba(25,40,70,.10); }
+    .stat-card:after { content:""; position:absolute; width:80px; height:80px; border-radius:50%; right:-30px; bottom:-35px; background:rgba(13,110,253,.04); }
+    .stat-card { position:relative; }
+    .section-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1rem; }
+    .table tbody tr { transition:background .15s ease; }
+    .table tbody tr:hover { background:#f8faff; }
+    .form-control,.form-select { border-radius:10px; padding:.62rem .8rem; }
+    .btn { border-radius:10px; }
+    .modal-content { border:0; border-radius:18px; overflow:hidden; }
+    .modal-header { background:#f8faff; }
+    .status-dot { width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;background:currentColor; }
+    .privacy-note { border-left:4px solid #0d6efd; background:#eef5ff; border-radius:10px; padding:12px 14px; font-size:.86rem; }
+    @media print { .sidebar,.btn,#quickAdd,.topbar > .d-flex:last-child { display:none!important; } main{width:100%!important;} body{background:#fff;} .page-section{display:block!important;margin-bottom:30px;} }
+
+    @media(max-width:767px){ .sidebar{min-height:auto;position:relative;} .sidebar .nav{flex-direction:row;overflow:auto;flex-wrap:nowrap}.sidebar .nav-link{white-space:nowrap;} }
+  
+    .sidebar { background:linear-gradient(rgba(15,23,37,.88),rgba(15,23,37,.94)),url("https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85") center/cover; }
+    .content { background:linear-gradient(135deg,#f5f7fb 0%,#eef3fa 100%); }
+    .topbar { background:rgba(255,255,255,.86); backdrop-filter:blur(12px); border:1px solid rgba(20,40,70,.06); border-radius:18px; padding:14px 18px; }
+    .section-header { margin:24px 0 14px; }
+    .app-card { transition:transform .18s ease,box-shadow .18s ease; }
+    .app-card:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(25,40,70,.09); }
+    .table>tbody>tr { transition:background .15s; }
+    .table>tbody>tr:hover { background:#f8fbff; }
+    .form-label { font-weight:600; font-size:.9rem; }
+    .modal-content { border:0; border-radius:18px; overflow:hidden; }
+    .modal-header { background:#f8fafc; }
+    .btn { border-radius:10px; font-weight:600; }
+    .form-control,.form-select,.input-group-text { border-radius:10px; }
+    .form-control:focus,.form-select:focus { box-shadow:0 0 0 .2rem rgba(13,110,253,.12); }
+    .privacy-note { border-left:4px solid #0d6efd; }
+    .metric-label { font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; font-weight:700; }
+    .notification-button { position:relative; width:42px; height:42px; padding:0; }
+    .notification-badge { position:absolute; top:-4px; right:-4px; min-width:20px; font-size:.68rem; }
+    .next-support { border-left:4px solid #0d6efd; background:linear-gradient(135deg,#eef5ff,#fff); }
+    .filter-label { font-size:.75rem; font-weight:700; color:#6c757d; text-transform:uppercase; letter-spacing:.04em; }
+    .admin-overview { border-top:1px solid #e5ebf3; padding-top:1.25rem; }
+    .admin-group { height:100%; border:1px solid #e1e8f2; border-radius:14px; padding:18px; background:#fff; }
+    .admin-group-title { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .admin-group-icon { width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:12px; font-size:1.15rem; }
+    .admin-metric { border-top:1px solid #edf1f6; padding-top:10px; }
+    .calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border:1px solid #e1e8f2; border-radius:12px; overflow:hidden; }
+    .calendar-weekday { background:#f4f7fb; color:#6c757d; font-size:.72rem; font-weight:800; letter-spacing:.04em; padding:10px 8px; text-align:center; text-transform:uppercase; }
+    .calendar-day { min-height:118px; padding:8px; border-top:1px solid #e1e8f2; border-right:1px solid #e1e8f2; background:#fff; }
+    .calendar-day:nth-child(7n) { border-right:0; }
+    .calendar-day.muted { background:#fafbfd; color:#a4adba; }
+    .calendar-day.today { background:#f0f8ff; box-shadow:inset 0 0 0 2px rgba(13,110,253,.25); }
+    .calendar-number { display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:.85rem; margin-bottom:6px; }
+    .calendar-event { display:block; width:100%; overflow:hidden; border:0; border-radius:6px; color:#fff; font-size:.7rem; line-height:1.2; margin-top:4px; padding:5px 6px; text-align:left; text-overflow:ellipsis; white-space:nowrap; }
+    .calendar-event.scheduled { background:#0d6efd; }
+    .calendar-event.done { background:#198754; }
+    .calendar-event.cancelled { background:#6c757d; }
+    @media(max-width:767px){ .calendar-day { min-height:86px; padding:5px; } .calendar-weekday { font-size:.62rem; padding:8px 2px; } .calendar-event { font-size:0; text-align:center; padding:5px 2px; } .calendar-event:before { content:"•"; font-size:1rem; } }
+    .status-dot { width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px; }
+    .welcome-banner { border-radius:18px; background:linear-gradient(135deg,#0d6efd,#4b7bec); color:#fff; overflow:hidden; position:relative; }
+    .welcome-banner:after { content:"";position:absolute;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.1);right:-55px;top:-75px; }
+    .entry-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:clamp(20px,5vw,64px); background:linear-gradient(125deg,#0b1728 0%,#123557 58%,#087f8c 100%); position:relative; overflow:hidden; }
+    .entry-screen:before,.entry-screen:after { content:""; position:absolute; border:1px solid rgba(255,255,255,.12); border-radius:50%; pointer-events:none; }
+    .entry-screen:before { width:520px; height:520px; right:-190px; top:-210px; }
+    .entry-screen:after { width:360px; height:360px; left:-190px; bottom:-190px; }
+    .entry-panel { width:min(100%,1080px); display:grid; grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr); background:rgba(255,255,255,.97); border-radius:28px; overflow:hidden; box-shadow:0 30px 90px rgba(0,0,0,.3); position:relative; z-index:1; animation:entryReveal .55s ease both; }
+    .entry-intro { min-height:570px; padding:clamp(32px,6vw,72px); display:flex; flex-direction:column; justify-content:space-between; color:#fff; background:linear-gradient(145deg,rgba(8,127,140,.92),rgba(13,110,253,.82)),url("https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1100&q=85") center/cover; }
+    .entry-kicker { font-size:.78rem; text-transform:uppercase; letter-spacing:.14em; font-weight:800; opacity:.8; }
+    .entry-intro h1 { max-width:520px; margin:18px 0; font-size:clamp(2.7rem,5vw,4.8rem); line-height:.98; font-weight:800; letter-spacing:-.04em; }
+    .entry-intro p { max-width:470px; color:rgba(255,255,255,.84); font-size:1.08rem; line-height:1.65; }
+    .entry-features { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:36px; }
+    .entry-feature { border-top:1px solid rgba(255,255,255,.28); padding-top:14px; font-size:.82rem; color:rgba(255,255,255,.82); }
+    .entry-feature i { display:block; font-size:1.25rem; color:#b8f3ed; margin-bottom:8px; }
+    .entry-content { padding:clamp(32px,5vw,64px); display:flex; flex-direction:column; justify-content:center; }
+    .entry-logo { width:64px; height:64px; display:inline-flex; align-items:center; justify-content:center; border-radius:18px; background:#e4f7f5; color:#087f8c; font-size:1.8rem; margin-bottom:20px; }
+    .entry-content h2 { font-weight:800; color:#172033; margin-bottom:10px; }
+    .entry-content .btn { min-width:220px; padding:.8rem 1rem; }
+    .entry-note { border-left:3px solid #12a594; background:#f0fbfa; color:#456; padding:12px 14px; border-radius:0 10px 10px 0; font-size:.82rem; margin-top:28px; }
+    @keyframes entryReveal { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    .role-screen { min-height:100vh; display:none; align-items:center; justify-content:center; padding:24px; background:linear-gradient(135deg,#0f1725 0%,#172033 55%,#0d6efd 140%); }
+    .role-panel { width:min(100%,760px); background:rgba(255,255,255,.97); border-radius:24px; padding:38px 32px; text-align:center; box-shadow:0 24px 70px rgba(0,0,0,.22); }
+    .role-panel h2 { font-weight:800; }
+    .role-option { height:100%; border:1px solid #dbe4f0; border-radius:16px; padding:26px 20px; background:#fff; transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease; }
+    .role-option:hover { transform:translateY(-3px); border-color:#0d6efd; box-shadow:0 10px 26px rgba(13,110,253,.12); }
+    .role-icon { width:54px; height:54px; display:inline-flex; align-items:center; justify-content:center; border-radius:16px; font-size:1.5rem; margin-bottom:14px; }
+    #ratingComment { min-height:96px; resize:vertical; }
+    .auth-screen { min-height:100vh; display:none; align-items:center; justify-content:center; padding:24px; background:linear-gradient(135deg,#0f1725 0%,#172033 55%,#0d6efd 140%); }
+    .auth-panel { width:min(100%,460px); background:rgba(255,255,255,.97); border-radius:24px; padding:32px; box-shadow:0 24px 70px rgba(0,0,0,.22); }
+    .auth-panel h2 { font-weight:800; }
+    .auth-switch { cursor:pointer; }
+    #appShell { display:none; }
+    @media print { .sidebar,.topbar .btn,#mainNav,button,.modal{display:none!important}.content{width:100%!important}.page-section{display:none!important}.page-section.active{display:block!important}.app-card{box-shadow:none!important;border:1px solid #ddd!important}body{background:#fff!important} }
+    @media(max-width:767px){
+      .entry-screen { padding:14px; align-items:stretch; }
+      .entry-panel { grid-template-columns:1fr; border-radius:20px; }
+      .entry-intro { min-height:auto; padding:30px 24px 26px; }
+      .entry-intro h1 { font-size:2.8rem; }
+      .entry-intro p { font-size:.95rem; margin-bottom:0; }
+      .entry-features { margin-top:26px; }
+      .entry-feature { font-size:.72rem; }
+      .entry-content { padding:30px 24px 34px; }
+      .entry-content .btn { width:100%; }
+      .sidebar { padding:12px!important; }
+      .sidebar > .d-flex { margin-bottom:12px!important; }
+      .sidebar .nav { flex-direction:column!important; gap:4px; padding-bottom:2px; }
+      .sidebar .nav-link { flex:0 0 auto; margin:0; padding:.55rem .7rem; font-size:.88rem; }
+      .sidebar .mt-auto { padding-top:12px!important; }
+      .content { padding:12px!important; }
+      .topbar { align-items:stretch!important; flex-direction:column; gap:12px; margin-bottom:16px!important; padding:14px!important; }
+      .topbar h2 { font-size:1.45rem; }
+      .topbar > .d-flex { display:grid!important; grid-template-columns:1fr 1fr; gap:8px!important; }
+      .topbar > .d-flex .btn:last-child { grid-column:1 / -1; }
+      .topbar .btn { width:100%; white-space:nowrap; }
+      .section-header { align-items:stretch; flex-direction:column; }
+      .app-card { border-radius:14px; }
+      .app-card.p-3 { padding:12px!important; }
+      .table-responsive { margin-right:-4px; }
+      .table { min-width:650px; }
+      .table thead th { font-size:.74rem; }
+      .privacy-note { font-size:.8rem; }
+      .modal-dialog { margin:.5rem; }
+      .modal-content { border-radius:14px; }
+      .modal-body { max-height:calc(100vh - 150px); overflow-y:auto; }
+      .modal-footer { flex-wrap:nowrap; }
+      .modal-footer .btn { flex:1; }
+    }
+</style>
+</head>
+<body>
+<section id="entryScreen" class="entry-screen" aria-labelledby="entryTitle">
+  <div class="entry-panel">
+    <div class="entry-intro">
+      <div>
+        <div class="entry-kicker"><i class="bi bi-plus-circle me-1"></i> Apoio próximo, cuidado humano</div>
+        <h1 id="entryTitle">Cuidar começa com uma ligação.</h1>
+        <p>Uma plataforma simples para aproximar quem precisa de apoio dos profissionais e voluntários disponíveis.</p>
+      </div>
+      <div class="entry-features" aria-label="Principais áreas da plataforma">
+        <div class="entry-feature"><i class="bi bi-calendar2-heart"></i>Pedidos de apoio</div>
+        <div class="entry-feature"><i class="bi bi-people"></i>Rede de voluntários</div>
+        <div class="entry-feature"><i class="bi bi-shield-check"></i>Acompanhamento</div>
+      </div>
+    </div>
+    <div class="entry-content">
+      <div class="entry-logo"><i class="bi bi-heart-pulse-fill"></i></div>
+      <div class="entry-kicker text-primary">Plataforma +Apoio</div>
+      <h2>Bem-vindo ao +Apoio</h2>
+      <p class="text-secondary mb-4">Coordene beneficiários, médicos voluntários e pedidos de apoio num só lugar.</p>
+      <button id="enterApp" class="btn btn-primary"><i class="bi bi-arrow-right-circle me-2"></i>Entrar na aplicação</button>
+      <div class="entry-note"><i class="bi bi-info-circle me-1"></i> Escolha o seu perfil no passo seguinte para continuar.</div>
+    </div>
+  </div>
+</section>
+<section id="roleScreen" class="role-screen" aria-labelledby="roleTitle">
+  <div class="role-panel">
+    <h2 id="roleTitle">Como pretende entrar?</h2>
+    <p class="text-secondary mb-4">Escolha a área que pretende utilizar.</p>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <button id="beneficiaryEntry" class="role-option w-100" type="button">
+          <span class="role-icon bg-primary-subtle text-primary"><i class="bi bi-person-plus-fill"></i></span>
+          <strong class="d-block fs-5 mb-2">Criar ou Entrar Beneficiário</strong>
+          <span class="text-secondary small">Pedir apoio ou consultar o seu acompanhamento.</span>
+        </button>
+      </div>
+      <div class="col-md-6">
+        <button id="doctorEntry" class="role-option w-100" type="button">
+          <span class="role-icon bg-success-subtle text-success"><i class="bi bi-heart-pulse-fill"></i></span>
+          <strong class="d-block fs-5 mb-2">Sou Médico Voluntário</strong>
+          <span class="text-secondary small">Disponibilizar apoio e gerir os seus acompanhamentos.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="authScreen" class="auth-screen" aria-labelledby="authTitle">
+  <div class="auth-panel">
+    <h2 id="authTitle">Entrar no +Apoio</h2>
+    <p id="authIntro" class="text-secondary">Use o seu utilizador e palavra-passe.</p>
+    <div id="authMessage" class="alert d-none" role="alert"></div>
+    <form id="loginForm">
+      <div class="mb-3"><label class="form-label" for="loginUsername">Utilizador</label><input id="loginUsername" class="form-control" autocomplete="username" required></div>
+      <div class="mb-3"><label class="form-label" for="loginPassword">Palavra-passe</label><input id="loginPassword" type="password" class="form-control" autocomplete="current-password" required></div>
+      <button class="btn btn-primary w-100">Entrar</button>
+    </form>
+    <form id="registerForm" class="d-none">
+      <div class="mb-3"><label class="form-label" for="registerName">Nome completo</label><input id="registerName" class="form-control" required></div>
+      <div class="mb-3"><label class="form-label" for="registerUsername">Nome de utilizador</label><input id="registerUsername" class="form-control" pattern="[a-zA-Z0-9._\-]{3,40}" required></div>
+      <div class="mb-3"><label class="form-label" for="registerEmail">Email</label><input id="registerEmail" type="email" class="form-control"></div>
+      <div class="mb-3"><label class="form-label" for="registerPhone">Número de telefone</label><input id="registerPhone" type="tel" class="form-control" autocomplete="tel" placeholder="Ex.: 912 345 678" required></div>
+      <div class="mb-3"><label class="form-label" for="registerRole">Perfil</label><select id="registerRole" class="form-select"><option value="beneficiario">Beneficiário</option><option value="medico">Médico voluntário</option></select></div>
+      <div class="mb-3"><label class="form-label" for="registerPassword">Palavra-passe</label><input id="registerPassword" type="password" class="form-control" minlength="8" autocomplete="new-password" required></div>
+      <button class="btn btn-primary w-100">Criar conta</button>
+    </form>
+    <button id="authSwitch" class="btn btn-link auth-switch w-100 mt-3" type="button">Ainda não tenho conta</button>
+  </div>
+</section>
+<div id="appShell">
+<div class="container-fluid">
+  <div class="row">
+    <aside class="col-lg-2 col-md-3 sidebar p-3">
+      <div class="d-flex align-items-center gap-2 mb-4">
+        <div class="bg-primary rounded-3 p-2"><i class="bi bi-heart-pulse-fill"></i></div>
+        <span class="brand">+Apoio</span>
+      </div>
+      <button class="btn btn-outline-light w-100 mb-3" id="menuToggle" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false">
+        <i class="bi bi-list me-1"></i>Menu
+      </button>
+      <nav class="nav flex-column collapse" id="mainNav">
+        <a class="nav-link active" href="#" data-page="dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+        <a class="nav-link" href="#" data-page="beneficiarios"><i class="bi bi-people me-2"></i>Beneficiários</a>
+        <a class="nav-link" href="#" data-page="medicos"><i class="bi bi-heart-pulse me-2"></i>Médicos voluntários</a>
+        <a class="nav-link" href="#" data-page="medicosDisponiveis"><i class="bi bi-person-check me-2"></i>Médicos disponíveis</a>
+        <a class="nav-link" href="#" data-page="apoios"><i class="bi bi-calendar2-heart me-2"></i>Apoios</a>
+        <a class="nav-link" href="#" data-page="pedidos"><i class="bi bi-inbox me-2"></i>Pedidos de apoio</a>
+        <a class="nav-link" href="#" data-page="comentarios" hidden><i class="bi bi-chat-left-text me-2"></i>Comentários das consultas</a>
+        <a class="nav-link" href="#" data-page="relatorios"><i class="bi bi-bar-chart me-2"></i>Relatórios</a>
+        <a class="nav-link" href="#" data-page="ajuda"><i class="bi bi-question-circle me-2"></i>Ajuda e contactos</a>
+        <a class="nav-link" href="#" data-page="utilizadores" hidden><i class="bi bi-person-check me-2"></i>Aprovar utilizadores</a>
+      </nav>
+      <div class="mt-auto pt-5 small text-secondary">
+        <button id="logoutButton" class="btn btn-sm btn-outline-light w-100 mb-3" type="button"><i class="bi bi-box-arrow-right me-1"></i>Terminar sessão</button>
+        <i class="bi bi-shield-check me-1"></i> Apoio+ · v2.0<br><span class="small">Protótipo demonstrativo</span>
+      </div>
+    </aside>
+
+    <main class="col-lg-10 col-md-9 content p-3 p-lg-4">
+      <div class="topbar d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="fw-bold mb-1" id="pageTitle">Dashboard</h2>
+          <div class="text-secondary">Coordenação integrada de cuidados domiciliários</div>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary notification-button" id="notificationButton" type="button" title="Notificações" aria-label="Notificações" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-content="Sem novas notificações."><i class="bi bi-bell"></i><span id="notificationCount" class="badge rounded-pill text-bg-danger notification-badge d-none">0</span></button>
+          <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir</button>
+          <button class="btn btn-outline-secondary" onclick="exportData()"><i class="bi bi-download me-1"></i>Exportar</button>
+          <button class="btn btn-primary" id="quickAdd"><i class="bi bi-plus-lg me-1"></i>Novo registo</button>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <section id="dashboard" class="page-section active">
+        <div class="alert alert-primary border-0 d-flex align-items-center gap-2 mb-4" role="alert">
+          <i class="bi bi-info-circle-fill"></i><div><strong>Visão geral:</strong> acompanhe beneficiários, voluntários e visitas a partir de um único painel.</div>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-xl-3 col-sm-6"><div class="card stat-card p-3"><div class="d-flex justify-content-between"><div><div class="text-secondary metric-label">Beneficiários</div><h3 id="statBenef" class="fw-bold mt-2">0</h3></div><div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-people"></i></div></div></div></div>
+          <div class="col-xl-3 col-sm-6"><div class="card stat-card p-3"><div class="d-flex justify-content-between"><div><div class="text-secondary metric-label">Médicos voluntários</div><h3 id="statMed" class="fw-bold mt-2">0</h3></div><div class="stat-icon bg-success-subtle text-success"><i class="bi bi-heart-pulse"></i></div></div></div></div>
+          <div class="col-xl-3 col-sm-6"><div class="card stat-card p-3"><div class="d-flex justify-content-between"><div><div class="text-secondary metric-label">Apoios agendados</div><h3 id="statApoio" class="fw-bold mt-2">0</h3></div><div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-calendar-check"></i></div></div></div></div>
+          <div class="col-xl-3 col-sm-6"><div class="card stat-card p-3"><div class="d-flex justify-content-between"><div><div class="text-secondary metric-label">Casos prioritários</div><h3 id="statPriority" class="fw-bold mt-2">0</h3></div><div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-exclamation-circle"></i></div></div></div></div>
+        </div>
+
+        <div id="nextSupportCard" class="next-support rounded-3 p-3 mb-4 d-flex justify-content-between align-items-center gap-3">
+          <div><div class="filter-label">Próximo apoio</div><strong id="nextSupportText">A carregar agenda...</strong></div>
+          <button class="btn btn-sm btn-outline-primary" onclick="showPage('apoios')"><i class="bi bi-calendar2-week me-1"></i>Ver agenda</button>
+        </div>
+
+        <div id="adminOverview" class="admin-overview row g-3 mb-4 d-none">
+          <div class="col-lg-6">
+            <div class="admin-group">
+              <div class="admin-group-title"><span class="admin-group-icon bg-primary-subtle text-primary"><i class="bi bi-people"></i></span><div><h5 class="mb-0">Beneficiários</h5><span class="small text-secondary">Acompanhamento e prioridades</span></div></div>
+              <div class="row g-3 mb-3"><div class="col-6"><div class="admin-metric"><div class="small text-secondary">Registados</div><strong id="adminBenefTotal" class="fs-4">0</strong></div></div><div class="col-6"><div class="admin-metric"><div class="small text-secondary">Prioridade alta</div><strong id="adminBenefPriority" class="fs-4 text-danger">0</strong></div></div></div>
+              <button class="btn btn-outline-primary w-100" type="button" onclick="showPage('beneficiarios')"><i class="bi bi-arrow-right me-1"></i>Ver beneficiários</button>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="admin-group">
+              <div class="admin-group-title"><span class="admin-group-icon bg-success-subtle text-success"><i class="bi bi-heart-pulse"></i></span><div><h5 class="mb-0">Médicos voluntários</h5><span class="small text-secondary">Disponibilidade da equipa</span></div></div>
+              <div class="row g-3 mb-3"><div class="col-4"><div class="admin-metric"><div class="small text-secondary">Total</div><strong id="adminMedTotal" class="fs-4">0</strong></div></div><div class="col-4"><div class="admin-metric"><div class="small text-secondary">Disponíveis</div><strong id="adminMedAvailable" class="fs-4 text-success">0</strong></div></div><div class="col-4"><div class="admin-metric"><div class="small text-secondary">Atendimento</div><strong id="adminMedBusy" class="fs-4 text-warning">0</strong></div></div></div>
+              <button class="btn btn-outline-success w-100" type="button" onclick="showPage('medicos')"><i class="bi bi-arrow-right me-1"></i>Ver médicos</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-lg-8">
+            <div class="card app-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Próximos apoios</h5><button class="btn btn-sm btn-link" onclick="showPage('apoios')">Ver todos</button>
+              </div>
+              <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Beneficiário</th><th>Médico</th><th>Data</th><th>Estado</th></tr></thead><tbody id="dashboardApoios"></tbody></table></div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="card app-card p-3 mb-3">
+              <h5>Distribuição por necessidade</h5>
+              <div id="needsChart" class="mt-3"></div>
+            </div>
+            <div class="card app-card p-3">
+              <div class="d-flex justify-content-between align-items-center"><h5 class="mb-0">Atividade</h5><span class="small text-secondary">Em tempo real</span></div>
+              <div class="mt-3 small" id="activityFeed"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="alert alert-primary privacy-note d-flex gap-3 align-items-start" role="alert">
+        <i class="bi bi-shield-lock fs-5"></i><div><strong>Privacidade:</strong> os dados são guardados no SQLite através do servidor PHP. O navegador mantém apenas uma cópia local de apoio quando o servidor está indisponível. Para utilização real, devem ser implementados autenticação, permissões, cópias de segurança e proteção adequada de dados pessoais.</div>
+      </div>
+      <!-- BENEFICIARIOS -->
+      <section id="beneficiarios" class="page-section">
+        <div class="card app-card p-3">
+          <div class="row g-2 mb-3">
+            <div class="col-md-6"><div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span><input id="benefSearch" class="form-control" placeholder="Pesquisar por nome, contacto ou localidade..."></div></div>
+            <div class="col-md-3"><select id="benefPriority" class="form-select"><option value="">Todas as prioridades</option><option>Alta</option><option>Média</option><option>Baixa</option></select></div>
+            <div class="col-md-3 text-md-end"><button class="btn btn-primary w-100" onclick="openBenefModal()"><i class="bi bi-person-plus me-1"></i>Adicionar beneficiário</button></div>
+          </div>
+          <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Beneficiário</th><th>Contacto</th><th>Localidade</th><th>Necessidade</th><th>Prioridade</th><th>Ações</th></tr></thead><tbody id="benefTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- MEDICOS -->
+      <section id="medicos" class="page-section">
+        <div class="card app-card p-3">
+          <div class="row g-2 mb-3">
+            <div class="col-md-7"><div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span><input id="medSearch" class="form-control" placeholder="Pesquisar médico, especialidade ou localidade..."></div></div>
+            <div class="col-md-2"><select id="medAvailability" class="form-select"><option value="">Todos</option><option value="Disponível">Disponíveis</option><option value="Em atendimento">Em atendimento</option></select></div>
+            <div class="col-md-3"><button class="btn btn-success w-100" onclick="openMedModal()"><i class="bi bi-person-plus me-1"></i>Adicionar médico</button></div>
+          </div>
+          <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Médico</th><th>Especialidade</th><th>Contacto</th><th>Localidade</th><th>Disponibilidade</th><th>Qualidade</th><th>Ações</th></tr></thead><tbody id="medTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- MEDICOS DISPONIVEIS -->
+      <section id="medicosDisponiveis" class="page-section">
+        <div class="card app-card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div><h5 class="mb-1">Médicos voluntários disponíveis</h5><div class="text-secondary small">Escolha um profissional para o seu pedido de apoio.</div></div>
+          </div>
+          <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Médico</th><th>Especialidade</th><th>Localidade</th><th>Áreas de apoio</th><th>Qualidade</th><th>Contacto</th></tr></thead><tbody id="availableMedTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- APOIOS -->
+      <section id="apoios" class="page-section">
+        <div class="card app-card p-3">
+          <div class="d-flex justify-content-between mb-3">
+            <h5 class="mb-0">Agenda de apoios</h5>
+            <button id="scheduleSupportButton" class="btn btn-primary" onclick="openApoioModal()"><i class="bi bi-calendar-plus me-1"></i>Agendar apoio</button>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-lg-5"><label class="filter-label" for="apoioSearch">Pesquisar</label><div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span><input id="apoioSearch" class="form-control" placeholder="Nome, médico ou tipo de apoio..."></div></div>
+            <div class="col-sm-4 col-lg-3"><label class="filter-label" for="apoioStatus">Estado</label><select id="apoioStatus" class="form-select"><option value="">Todos os estados</option><option>Agendado</option><option>Realizado</option><option>Cancelado</option></select></div>
+            <div class="col-sm-4 col-lg-2"><label class="filter-label" for="apoioDateFilter">Período</label><select id="apoioDateFilter" class="form-select"><option value="all">Todos</option><option value="upcoming">Próximos</option><option value="today">Hoje</option><option value="past">Anteriores</option></select></div>
+            <div class="col-sm-4 col-lg-2 d-flex align-items-end"><button class="btn btn-outline-secondary w-100" type="button" onclick="clearApoioFilters()"><i class="bi bi-x-circle me-1"></i>Limpar</button></div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+            <div class="btn-group" role="group" aria-label="Vista dos apoios"><button id="listViewButton" class="btn btn-primary btn-sm" type="button" onclick="setApoioView('list')"><i class="bi bi-list-ul me-1"></i>Lista</button><button id="calendarViewButton" class="btn btn-outline-primary btn-sm" type="button" onclick="setApoioView('calendar')"><i class="bi bi-calendar3 me-1"></i>Calendário</button></div>
+            <div id="calendarControls" class="d-none align-items-center gap-2"><button class="btn btn-sm btn-outline-secondary" type="button" onclick="changeCalendarMonth(-1)" aria-label="Mês anterior" title="Mês anterior"><i class="bi bi-chevron-left"></i></button><strong id="calendarMonthLabel" class="text-capitalize"></strong><button class="btn btn-sm btn-outline-secondary" type="button" onclick="changeCalendarMonth(1)" aria-label="Mês seguinte" title="Mês seguinte"><i class="bi bi-chevron-right"></i></button></div>
+          </div>
+          <div id="ratingPrompt" class="alert alert-warning d-none align-items-center justify-content-between gap-3" role="alert"></div>
+          <div id="apoioListView" class="table-responsive"><table class="table align-middle"><thead><tr><th>Data</th><th>Beneficiário</th><th>Médico</th><th>Tipo</th><th>Estado</th><th>Ações</th></tr></thead><tbody id="apoioTable"></tbody></table></div>
+          <div id="apoioCalendarView" class="d-none"><div class="calendar-grid" id="apoioCalendar"></div><div class="small text-secondary mt-2"><span class="badge text-bg-primary me-1">Agendado</span><span class="badge text-bg-success me-1">Realizado</span><span class="badge text-bg-secondary">Cancelado</span></div></div>
+        </div>
+      </section>
+
+      <section id="pedidos" class="page-section">
+        <div class="card app-card p-3">
+          <div class="section-header"><div><h5 class="mb-1">Pedidos de apoio</h5><div class="text-secondary small">Pedidos enviados pelos beneficiários e acompanhamento da resposta.</div></div><button id="newRequestButton" class="btn btn-primary" type="button" onclick="openRequestModal()"><i class="bi bi-plus-lg me-1"></i>Novo pedido</button></div>
+          <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Pedido</th><th>Beneficiário</th><th>Prioridade</th><th>Data</th><th>Estado</th><th>Ações</th></tr></thead><tbody id="requestsTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="comentarios" class="page-section">
+        <div class="card app-card p-3">
+          <div class="mb-3"><h5 class="mb-1">Comentários das consultas</h5><div class="text-secondary small">Consulte as notas associadas aos apoios.</div></div>
+          <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Data</th><th>Beneficiário</th><th>Tipo</th><th>Estado</th><th>Notas da consulta</th><th>Avaliação</th></tr></thead><tbody id="commentsTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- RELATORIOS -->
+      <section id="relatorios" class="page-section">
+        <div class="privacy-note mb-3"><i class="bi bi-shield-lock me-1"></i><strong>Privacidade:</strong> os dados são guardados numa base SQLite através do servidor PHP. Não introduza dados clínicos reais sem autenticação, permissões e proteção adequada.</div>
+        <div class="row g-3">
+          <div class="col-md-6"><div class="card app-card p-4"><h5>Resumo operacional</h5><hr><div class="d-flex justify-content-between py-2"><span>Total de beneficiários</span><strong id="rBenef">0</strong></div><div class="d-flex justify-content-between py-2"><span>Médicos registados</span><strong id="rMed">0</strong></div><div class="d-flex justify-content-between py-2"><span>Apoios realizados</span><strong id="rDone">0</strong></div><div class="d-flex justify-content-between py-2"><span>Apoios pendentes</span><strong id="rPending">0</strong></div></div></div>
+          <div class="col-md-6"><div class="card app-card p-4"><h5>Dados da aplicação</h5><p class="text-secondary">Os dados são guardados numa base SQLite através do servidor PHP. As cópias de segurança continuam disponíveis neste navegador.</p><div class="d-flex flex-wrap gap-2">
+<button class="btn btn-outline-primary" onclick="backupData();toast('Cópia de segurança criada neste navegador.')"><i class="bi bi-cloud-arrow-down me-1"></i>Criar cópia local</button>
+<button class="btn btn-outline-secondary" onclick="restoreBackup()"><i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar cópia</button>
+<button class="btn btn-outline-danger" onclick="resetData()"><i class="bi bi-trash me-1"></i>Repor dados de demonstração</button>
+<button class="btn btn-outline-success" onclick="exportCsv()"><i class="bi bi-filetype-csv me-1"></i>Exportar CSV</button>
+</div></div></div>
+        </div>
+        <div class="card app-card p-4 mt-3"><h5>Distribuição dos apoios</h5><div id="reportStatusChart" class="mt-3"></div></div>
+      </section>
+      <section id="ajuda" class="page-section">
+        <div class="row g-3"><div class="col-lg-7"><div class="card app-card p-4"><h5>Como utilizar</h5><div class="accordion mt-3" id="helpAccordion"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#helpOne">Como agendar um apoio?</button></h2><div id="helpOne" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion"><div class="accordion-body">Abra <strong>Apoios</strong>, escolha <strong>Agendar apoio</strong> e preencha a data, beneficiário, médico e notas.</div></div></div><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#helpTwo">Como enviar um pedido?</button></h2><div id="helpTwo" class="accordion-collapse collapse" data-bs-parent="#helpAccordion"><div class="accordion-body">Na área <strong>Pedidos de apoio</strong>, carregue em <strong>Novo pedido</strong>. A coordenação acompanha o estado do pedido.</div></div></div><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#helpThree">Como criar uma cópia dos dados?</button></h2><div id="helpThree" class="accordion-collapse collapse" data-bs-parent="#helpAccordion"><div class="accordion-body">Em <strong>Relatórios</strong>, utilize <strong>Criar cópia local</strong> ou <strong>Exportar</strong>.</div></div></div></div></div></div><div class="col-lg-5"><div class="card app-card p-4"><h5>Contactos</h5><p class="text-secondary">Para apoio à utilização da plataforma, contacte a coordenação.</p><div class="d-grid gap-2"><a class="btn btn-outline-primary" href="mailto:coordenacao@apoio.pt"><i class="bi bi-envelope me-2"></i>coordenacao@apoio.pt</a><a class="btn btn-outline-secondary" href="tel:+351000000000"><i class="bi bi-telephone me-2"></i>+351 000 000 000</a></div><div class="privacy-note mt-3"><i class="bi bi-shield-lock me-1"></i>Não partilhe palavras-passe nem dados clínicos por email.</div></div></div></div>
+      </section>
+      <section id="utilizadores" class="page-section">
+        <div class="card app-card p-3">
+          <div class="mb-3"><h5 class="mb-1">Aprovação de utilizadores</h5><div class="text-secondary small">Aprove ou recuse pedidos de acesso à aplicação.</div></div>
+          <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Nome</th><th>Contacto</th><th>Utilizador</th><th>Perfil</th><th>Estado</th><th>Ações</th></tr></thead><tbody id="usersTable"></tbody></table></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- Modal Beneficiário -->
+<div class="modal fade" id="benefModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><form id="benefForm">
+  <div class="modal-header"><h5 class="modal-title" id="benefModalTitle">Novo beneficiário</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><input type="hidden" id="benefId"><div class="row g-3">
+    <div class="col-md-6"><label class="form-label">Nome completo *</label><input id="bName" class="form-control" required></div>
+    <div class="col-md-3"><label class="form-label">Data de nascimento</label><input id="bBirth" type="date" class="form-control"></div>
+    <div class="col-md-3"><label class="form-label">Prioridade *</label><select id="bPriority" class="form-select" required><option>Alta</option><option selected>Média</option><option>Baixa</option></select></div>
+    <div class="col-md-6"><label class="form-label">Telefone</label><input id="bPhone" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Email</label><input id="bEmail" type="email" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Morada</label><input id="bAddress" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Localidade</label><input id="bCity" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Necessidade principal *</label><select id="bNeed" class="form-select" required><option>Cuidados médicos</option><option>Acompanhamento</option><option>Medicação</option><option>Mobilidade</option><option>Cuidados de enfermagem</option><option>Outro</option></select></div>
+    <div class="col-md-6"><label class="form-label">Contacto de emergência</label><input id="bEmergency" class="form-control"></div>
+    <div class="col-12"><label class="form-label">Observações</label><textarea id="bNotes" class="form-control" rows="3"></textarea></div>
+  </div></div>
+  <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary">Guardar</button></div>
+</form></div></div></div>
+
+<!-- Modal Médico -->
+<div class="modal fade" id="medModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><form id="medForm">
+  <div class="modal-header"><h5 class="modal-title" id="medModalTitle">Novo médico voluntário</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><input type="hidden" id="medId"><div class="row g-3">
+    <div class="col-md-6"><label class="form-label">Nome completo *</label><input id="mName" class="form-control" required></div>
+    <div class="col-md-6"><label class="form-label">Especialidade *</label><input id="mSpec" class="form-control" placeholder="Ex.: Medicina Geral e Familiar" required></div>
+    <div class="col-md-4"><label class="form-label">Telefone</label><input id="mPhone" class="form-control"></div>
+    <div class="col-md-4"><label class="form-label">Email</label><input id="mEmail" type="email" class="form-control"></div>
+    <div class="col-md-4"><label class="form-label">Localidade</label><input id="mCity" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Estado</label><select id="mAvail" class="form-select"><option>Disponível</option><option>Em atendimento</option></select></div>
+    <div class="col-md-6"><label class="form-label">Registo profissional</label><input id="mReg" class="form-control" placeholder="N.º de cédula/registo"></div>
+    <div class="col-12"><label class="form-label">Áreas de apoio</label><input id="mAreas" class="form-control" placeholder="Ex.: idosos, cuidados paliativos, acompanhamento"></div>
+  </div></div>
+  <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success">Guardar</button></div>
+</form></div></div></div>
+
+<!-- Modal Apoio -->
+<div class="modal fade" id="apoioModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="apoioForm">
+  <div class="modal-header"><h5 class="modal-title">Agendar apoio</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><div class="row g-3">
+    <div class="col-md-6"><label class="form-label">Data *</label><input id="aDate" type="datetime-local" class="form-control" required></div>
+    <div class="col-md-6"><label class="form-label">Tipo *</label><select id="aType" class="form-select"><option>Consulta domiciliária</option><option>Acompanhamento</option><option>Avaliação</option><option>Seguimento</option></select></div>
+    <div class="col-12"><label class="form-label">Beneficiário *</label><select id="aBenef" class="form-select" required></select></div>
+    <div class="col-12"><label class="form-label">Médico voluntário *</label><select id="aMed" class="form-select" required></select></div>
+    <div class="col-12"><label class="form-label">Notas</label><textarea id="aNotes" class="form-control"></textarea></div>
+  </div></div>
+  <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary">Agendar</button></div>
+</form></div></div></div>
+
+<div class="modal fade" id="ratingModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="ratingForm">
+  <div class="modal-header"><h5 class="modal-title">Classificar atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body text-center"><p class="text-secondary">Como avalia o atendimento deste médico?</p><input type="hidden" id="ratingSupportId"><div class="d-flex justify-content-center gap-2 mb-3" role="radiogroup" aria-label="Classificação de 1 a 5 estrelas">
+    <button type="button" class="btn btn-outline-warning rating-star" data-stars="1" aria-label="1 estrela"><i class="bi bi-star-fill"></i></button>
+    <button type="button" class="btn btn-outline-warning rating-star" data-stars="2" aria-label="2 estrelas"><i class="bi bi-star-fill"></i></button>
+    <button type="button" class="btn btn-outline-warning rating-star" data-stars="3" aria-label="3 estrelas"><i class="bi bi-star-fill"></i></button>
+    <button type="button" class="btn btn-outline-warning rating-star" data-stars="4" aria-label="4 estrelas"><i class="bi bi-star-fill"></i></button>
+    <button type="button" class="btn btn-outline-warning rating-star" data-stars="5" aria-label="5 estrelas"><i class="bi bi-star-fill"></i></button>
+  </div><input type="hidden" id="ratingStars" required><label class="form-label text-start d-block" for="ratingComment">Comentário sobre o atendimento <span class="text-danger">*</span></label><textarea id="ratingComment" class="form-control text-start" rows="4" placeholder="Conte como correu o atendimento..." required></textarea></div>
+  <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-warning">Enviar classificação</button></div>
+</form></div></div></div>
+
+<div class="modal fade" id="requestModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="requestForm">
+  <div class="modal-header"><h5 class="modal-title">Novo pedido de apoio</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><div class="mb-3"><label class="form-label" for="requestSubject">Assunto *</label><input id="requestSubject" class="form-control" maxlength="120" required placeholder="Ex.: Preciso de acompanhamento"></div><div class="mb-3"><label class="form-label" for="requestPriority">Prioridade</label><select id="requestPriority" class="form-select"><option>Baixa</option><option selected>Média</option><option>Alta</option></select></div><div><label class="form-label" for="requestDescription">Explique o que precisa *</label><textarea id="requestDescription" class="form-control" rows="5" maxlength="1000" required></textarea></div></div>
+  <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary">Enviar pedido</button></div>
+</form></div></div></div>
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1100"><div id="toast" class="toast align-items-center text-bg-success border-0"><div class="d-flex"><div class="toast-body" id="toastMsg">Operação concluída.</div><button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById("enterApp").onclick=()=>{
+  document.getElementById("entryScreen").style.display="none";
+  document.getElementById("authScreen").style.display="flex";
+};
+const apiUrl="backend/api.php";
+const localUsersKey="apoioUsers";
+let currentSessionUser=null;
+let refreshTimer=null;
+let calendarViewDate=new Date();
+function localUsers(){
+  let stored=null;
+  try{stored=JSON.parse(localStorage.getItem(localUsersKey)||"null");}catch(error){localStorage.removeItem(localUsersKey);}
+  if(Array.isArray(stored)&&stored.length)return stored;
+  const users=[{id:1,username:"admin",password:"admin123",name:"Coordenação",email:"",phone:"",role:"admin",status:"approved",created_at:new Date().toISOString()}];
+  localStorage.setItem(localUsersKey,JSON.stringify(users));
+  return users;
+}
+function saveLocalUsers(users){localStorage.setItem(localUsersKey,JSON.stringify(users));}
+function localRegister(payload){
+  const username=String(payload.username||"").trim().toLowerCase();
+  const users=localUsers();
+  if(!/^[a-z0-9._-]{3,40}$/.test(username)||String(payload.password||"").length<8||!String(payload.name||"").trim()||!["beneficiario","medico"].includes(payload.role))return {ok:false,error:"Preencha os dados corretamente. A palavra-passe deve ter pelo menos 8 caracteres."};
+  if(users.some(user=>user.username===username))return {ok:false,error:"Esse nome de utilizador já existe."};
+  users.push({id:Math.max(...users.map(user=>Number(user.id)||0))+1,username,password:String(payload.password),name:String(payload.name).trim(),email:String(payload.email||"").trim(),phone:String(payload.phone||"").trim(),role:payload.role,status:"pending",created_at:new Date().toISOString()});
+  saveLocalUsers(users);
+  return {ok:true,message:"Conta criada. Aguarde aprovação da coordenação."};
+}
+function localLogin(username,password){
+  const user=localUsers().find(item=>item.username===String(username||"").trim().toLowerCase()&&item.password===String(password||""));
+  if(!user)return {ok:false,error:"Utilizador ou palavra-passe inválidos."};
+  if(user.status!=="approved")return {ok:false,error:user.status==="pending"?"A conta aguarda aprovação da coordenação.":"Esta conta foi recusada."};
+  const {password:ignored,...safeUser}=user;
+  return {ok:true,user:safeUser};
+}
+function showAuthMessage(message,success=false){
+  const box=document.getElementById("authMessage");
+  box.textContent=message; box.className=`alert ${success?"alert-success":"alert-danger"}`;
+}
+document.getElementById("authSwitch").onclick=()=>{
+  const registerVisible=!document.getElementById("registerForm").classList.toggle("d-none");
+  document.getElementById("loginForm").classList.toggle("d-none");
+  document.getElementById("authTitle").textContent=registerVisible?"Criar conta":"Entrar no +Apoio";
+  document.getElementById("authIntro").textContent=registerVisible?"A sua conta ficará pendente até ser aprovada pela coordenação.":"Use o seu utilizador e palavra-passe.";
+  document.getElementById("authSwitch").textContent=registerVisible?"Já tenho conta":"Ainda não tenho conta";
+  document.getElementById("authMessage").className="alert d-none";
+};
+document.getElementById("registerForm").onsubmit=async event=>{
+  event.preventDefault();
+  const payload={
+    name:document.getElementById("registerName").value,
+    username:document.getElementById("registerUsername").value,
+    email:document.getElementById("registerEmail").value,
+    phone:document.getElementById("registerPhone").value,
+    password:document.getElementById("registerPassword").value,
+    role:document.getElementById("registerRole").value
+  };
+  try{
+    const response=await fetch(`${apiUrl}?action=register`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload)});
+    if(!response.ok)throw new Error("API indisponível");
+    const result=await response.json();
+    showAuthMessage(result.message||result.error||"Não foi possível criar a conta.",response.ok);
+    if(response.ok){event.target.reset();document.getElementById("authSwitch").click();}
+  }catch(error){
+    const result=localRegister(payload);
+    showAuthMessage(result.message||result.error||"Não foi possível criar a conta.",result.ok);
+    if(result.ok){event.target.reset();document.getElementById("authSwitch").click();}
+  }
+};
+document.getElementById("loginForm").onsubmit=async event=>{
+  event.preventDefault();
+  try{
+    const response=await fetch(`${apiUrl}?action=login`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({username:loginUsername.value,password:loginPassword.value})});
+    const result=await response.json();
+    if(!response.ok){showAuthMessage(result.error||"Não foi possível iniciar sessão.");return;}
+    currentSessionUser=result.user;
+  }catch(error){
+    const result=localLogin(loginUsername.value,loginPassword.value);
+    if(!result.ok){showAuthMessage(`${result.error} Modo GitHub: os dados ficam guardados neste navegador.`);return;}
+    currentSessionUser=result.user;
+    showAuthMessage("Modo GitHub Pages: os dados ficam guardados neste navegador.",true);
+  }
+  document.getElementById("authScreen").style.display="none";
+  await enterRole(currentSessionUser.role,currentSessionUser.role==="admin"?"dashboard":currentSessionUser.role==="medico"?"dashboard":"apoios");
+};
+async function enterRole(role,page){
+  document.getElementById("roleScreen").style.display="none";
+  document.getElementById("appShell").style.display="block";
+  const beneficiaryRole=role==="beneficiario";
+  document.querySelectorAll("#mainNav .nav-link").forEach(link=>{
+    link.hidden=beneficiaryRole && !["apoios","medicosDisponiveis"].includes(link.dataset.page);
+  });
+  document.getElementById("quickAdd").hidden=beneficiaryRole;
+  document.getElementById("scheduleSupportButton").hidden=false;
+  document.querySelector('[data-page="utilizadores"]').hidden=role!=="admin";
+  document.querySelector('[data-page="comentarios"]').hidden=!['medico','admin'].includes(role);
+  document.querySelector('[data-page="pedidos"]').hidden=false;
+  document.querySelector('[data-page="ajuda"]').hidden=false;
+  document.getElementById("newRequestButton").hidden=role!=="beneficiario";
+  showPage(page);
+  await loadData();
+  await loadRequestsData();
+  startAutoRefresh();
+  if(role==="admin") await loadUsers();
+}
+document.getElementById("beneficiaryEntry").onclick=()=>enterRole("beneficiario","apoios");
+document.getElementById("doctorEntry").onclick=()=>enterRole("medico","dashboard");
+const seed = {
+  beneficiarios:[
+    {id:1,name:"Maria da Silva",birth:"1943-05-12",priority:"Alta",phone:"912 345 678",email:"maria@example.pt",address:"Rua das Flores, 12",city:"Figueira da Foz",need:"Cuidados médicos",emergency:"Ana Silva — 913 111 222",notes:"Necessita de acompanhamento regular."},
+    {id:2,name:"João Santos",birth:"1951-09-20",priority:"Média",phone:"914 222 333",email:"joao@example.pt",address:"Rua Central, 45",city:"Coimbra",need:"Medicação",emergency:"Pedro Santos — 914 555 666",notes:"Apoio na gestão da medicação."},
+    {id:3,name:"António Costa",birth:"1938-02-03",priority:"Baixa",phone:"916 444 555",email:"",address:"Av. Principal, 8",city:"Montemor-o-Velho",need:"Acompanhamento",emergency:"",notes:"Acompanhamento social."}
+  ],
+  medicos:[
+    {id:1,name:"Dr. Ricardo Almeida",spec:"Medicina Geral e Familiar",phone:"917 123 456",email:"ricardo@voluntarios.pt",city:"Figueira da Foz",avail:"Disponível",reg:"OM-12345",areas:"Idosos, acompanhamento"},
+    {id:2,name:"Dra. Sofia Martins",spec:"Medicina Interna",phone:"918 222 333",email:"sofia@voluntarios.pt",city:"Coimbra",avail:"Disponível",reg:"OM-23456",areas:"Doença crónica, idosos"},
+    {id:3,name:"Dr. Miguel Ferreira",spec:"Cardiologia",phone:"919 333 444",email:"miguel@voluntarios.pt",city:"Leiria",avail:"Indisponível",reg:"OM-34567",areas:"Cardiologia"}
+  ],
+  apoios:[
+    {id:1,date:"2026-09-18T10:00",benef:1,med:1,type:"Consulta domiciliária",status:"Agendado",notes:"Avaliação geral"},
+    {id:2,date:"2026-09-19T14:30",benef:2,med:2,type:"Seguimento",status:"Agendado",notes:"Rever medicação"},
+    {id:3,date:"2026-09-10T11:00",benef:3,med:1,type:"Acompanhamento",status:"Realizado",notes:"Visita de acompanhamento"}
+  ]
+};
+function normalizeData(value){
+  return {
+    beneficiarios:(value.beneficiarios||[]).map(x=>({...x,id:Number(x.id)})),
+    medicos:(value.medicos||[]).map(x=>({...x,id:Number(x.id),avail:x.avail==="Indisponível"?"Em atendimento":(x.avail||"Disponível")})),
+    apoios:(value.apoios||[]).map(x=>({...x,id:Number(x.id),benef:Number(x.benef),med:Number(x.med)})),
+    ratings:(value.ratings||[]).map(x=>({...x,id:Number(x.id),apoio_id:Number(x.apoio_id),benef:Number(x.benef),med:Number(x.med),stars:Number(x.stars)}))
+  };
+}
+let data = normalizeData(JSON.parse(localStorage.getItem("apoioData")) || JSON.parse(JSON.stringify(seed)));
+data.requests=[];
+async function loadData(showError=true){
+  try{
+    const response=await fetch(apiUrl,{headers:{Accept:"application/json"}});
+    if(!response.ok)throw new Error("Não foi possível carregar o SQLite.");
+    const payload=await response.json();
+    data=normalizeData(payload);
+    localStorage.setItem("apoioData",JSON.stringify(data));
+    renderAll();
+  }catch(error){
+    console.warn(error);
+    if(showError)toast("Servidor PHP indisponível. A usar os dados locais.");
+  }
+}
+async function loadRequestsData(showError=false){
+  try{
+    const response=await fetch(`${apiUrl}?action=requests`,{headers:{Accept:"application/json"}});
+    if(!response.ok)throw new Error("Não foi possível carregar os pedidos.");
+    const result=await response.json();
+    data.requests=result.requests||[];
+    renderRequests();
+    renderNotifications();
+  }catch(error){if(showError)console.warn(error);}
+}
+function startAutoRefresh(){
+  clearInterval(refreshTimer);
+  refreshTimer=setInterval(async()=>{
+    if(document.hidden||document.querySelector('.modal.show'))return;
+    await loadData(false);
+    await loadRequestsData(false);
+    if(currentSessionUser?.role==="admin"&&document.querySelector('#utilizadores.active'))await loadUsers();
+  },10000);
+}
+async function loadUsers(){
+  let result;
+  try{
+    const response=await fetch(`${apiUrl}?action=users`,{headers:{Accept:"application/json"}});
+    if(!response.ok)throw new Error("API indisponível");
+    result=await response.json();
+  }catch(error){result={users:localUsers().map(({password,...user})=>user)};}
+  usersTable.innerHTML=result.users.map(user=>`<tr><td><strong>${esc(user.name)}</strong></td><td>${esc(user.phone||"—")}<div class="small text-secondary">${esc(user.email)}</div></td><td>${esc(user.username)}</td><td>${user.role==="medico"?"Médico voluntário":user.role==="beneficiario"?"Beneficiário":"Coordenação"}</td><td><span class="badge text-bg-${user.status==="approved"?"success":user.status==="pending"?"warning":"danger"} badge-soft">${user.status==="approved"?"Aprovado":user.status==="pending"?"Pendente":"Recusado"}</span></td><td>${user.role!=="admin"?`${user.status==="pending"?`<button class="btn btn-sm btn-success me-1" onclick="approveUser(${user.id},'approved')">Aprovar</button><button class="btn btn-sm btn-outline-danger me-1" onclick="approveUser(${user.id},'rejected')">Recusar</button>`:""}<button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id},'${esc(user.name)}')"><i class="bi bi-trash me-1"></i>Eliminar</button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos.</td></tr>';
+}
+async function approveUser(id,status){
+  try{
+    const response=await fetch(`${apiUrl}?action=users`,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id,status})});
+    if(!response.ok)throw new Error("API indisponível");
+  }catch(error){
+    const users=localUsers();
+    const user=users.find(item=>Number(item.id)===Number(id));
+    if(!user){toast("Não foi possível atualizar a conta.");return;}
+    user.status=status;saveLocalUsers(users);
+  }
+  await loadUsers(); toast(status==="approved"?"Conta aprovada.":"Conta recusada.");
+}
+async function deleteUser(id,name){
+  if(!confirm(`Eliminar o utilizador ${name}? O perfil e as consultas associadas também serão removidos.`))return;
+  try{
+    const response=await fetch(`${apiUrl}?action=users`,{method:"DELETE",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id})});
+    const result=await response.json();
+    if(!response.ok){toast(result.error||"Não foi possível eliminar o utilizador.");return;}
+  }catch(error){saveLocalUsers(localUsers().filter(user=>Number(user.id)!==Number(id)));}
+  await loadUsers();
+  await loadData(false);
+  toast("Utilizador eliminado.");
+}
+async function save(){
+  localStorage.setItem("apoioData",JSON.stringify(data));
+  backupData();
+  try{
+    const response=await fetch(apiUrl,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(data)});
+    if(!response.ok)throw new Error("Não foi possível guardar no SQLite.");
+    data=normalizeData(await response.json());
+    localStorage.setItem("apoioData",JSON.stringify(data));
+    return true;
+  }catch(error){
+    console.warn(error);
+    toast("Alteração guardada localmente, mas não foi enviada para o SQLite.");
+    return false;
+  }
+}
+const backupKey="apoioDataBackup";
+function backupData(){ localStorage.setItem(backupKey,JSON.stringify({savedAt:new Date().toISOString(),data})); }
+async function restoreBackup(){ const raw=localStorage.getItem(backupKey); if(!raw){toast("Ainda não existe uma cópia de segurança.");return;} if(confirm("Restaurar a última cópia de segurança?")){data=normalizeData(JSON.parse(raw).data);await save();renderAll();toast("Cópia de segurança restaurada.");} }
+function nextId(list){ return list.reduce((max,x)=>Math.max(max,Number(x.id)||0),0)+1; }
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const getBenef=id=>data.beneficiarios.find(x=>x.id==id);
+const getMed=id=>data.medicos.find(x=>x.id==id);
+const priorityBadge=p=>p==="Alta"?"danger":p==="Média"?"warning":"secondary";
+function toast(msg){document.getElementById("toastMsg").textContent=msg;bootstrap.Toast.getOrCreateInstance(document.getElementById("toast")).show();}
+function showPage(page){
+  document.querySelectorAll(".page-section").forEach(x=>x.classList.toggle("active",x.id===page));
+  document.querySelectorAll("#mainNav .nav-link").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  const titles={dashboard:"Dashboard",beneficiarios:"Beneficiários",medicos:"Médicos voluntários",medicosDisponiveis:"Médicos disponíveis",apoios:"Apoios",pedidos:"Pedidos de apoio",comentarios:"Comentários das consultas",relatorios:"Relatórios",ajuda:"Ajuda e contactos",utilizadores:"Aprovar utilizadores"};
+  document.getElementById("pageTitle").textContent=titles[page];
+  renderAll();
+}
+document.querySelectorAll("#mainNav .nav-link").forEach(a=>a.onclick=e=>{e.preventDefault();showPage(a.dataset.page)});
+document.getElementById("quickAdd").onclick=()=> {
+  const active=document.querySelector(".page-section.active").id;
+  if(active==="medicos") openMedModal(); else if(active==="apoios") openApoioModal(); else openBenefModal();
+};
+
+function renderDashboard(){
+  statBenef.textContent=data.beneficiarios.length; statMed.textContent=data.medicos.length;
+  statApoio.textContent=data.apoios.filter(a=>a.status!=="Realizado").length;
+  statPriority.textContent=data.beneficiarios.filter(b=>b.priority==="Alta").length;
+  const isAdmin=currentSessionUser?.role==="admin";
+  adminOverview.classList.toggle("d-none",!isAdmin);
+  if(isAdmin){
+    adminBenefTotal.textContent=data.beneficiarios.length;
+    adminBenefPriority.textContent=data.beneficiarios.filter(b=>b.priority==="Alta").length;
+    adminMedTotal.textContent=data.medicos.length;
+    adminMedAvailable.textContent=data.medicos.filter(m=>m.avail==="Disponível").length;
+    adminMedBusy.textContent=data.medicos.filter(m=>m.avail!=="Disponível").length;
+  }
+  const visibleSupports=getVisibleSupports();
+  const upcoming=visibleSupports.filter(a=>a.status==="Agendado"&&new Date(a.date)>=new Date()).sort((a,b)=>a.date.localeCompare(b.date));
+  nextSupportText.textContent=upcoming.length?`${formatDate(upcoming[0].date)} · ${getBenef(upcoming[0].benef)?.name||"Beneficiário"}`:"Não existem apoios futuros agendados.";
+  dashboardApoios.innerHTML=visibleSupports.slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5).map(a=>{
+    const b=getBenef(a.benef),m=getMed(a.med);
+    return `<tr><td><span class="avatar me-2">${esc(b?.name?.[0]||"?")}</span>${esc(b?.name||"—")}</td><td>${esc(m?.name||"—")}</td><td>${formatDate(a.date)}</td><td><span class="badge bg-${a.status==="Realizado"?"success":"primary"} badge-soft">${a.status}</span></td></tr>`;
+  }).join("") || `<tr><td colspan="4" class="empty">Ainda não existem apoios.</td></tr>`;
+  const counts={}; data.beneficiarios.forEach(b=>counts[b.need]=(counts[b.need]||0)+1);
+  needsChart.innerHTML=Object.entries(counts).map(([k,v])=>`<div class="mb-3"><div class="d-flex justify-content-between small mb-1"><span>${esc(k)}</span><strong>${v}</strong></div><div class="progress" style="height:8px"><div class="progress-bar" role="progressbar" aria-valuenow="${v}" aria-valuemin="0" aria-valuemax="${data.beneficiarios.length}" style="width:${Math.round(v/data.beneficiarios.length*100)}%"></div></div></div>`).join("") || '<div class="empty">Sem dados.</div>';
+  activityFeed.innerHTML = [
+    `<div class="d-flex gap-2 mb-3"><span class="text-primary"><i class="bi bi-people-fill"></i></span><span><strong>${data.beneficiarios.length}</strong> beneficiários registados</span></div>`,
+    `<div class="d-flex gap-2 mb-3"><span class="text-success"><i class="bi bi-heart-pulse-fill"></i></span><span><strong>${data.medicos.filter(m=>m.avail==="Disponível").length}</strong> médicos disponíveis</span></div>`,
+    `<div class="d-flex gap-2"><span class="text-warning"><i class="bi bi-calendar-event-fill"></i></span><span><strong>${data.apoios.filter(a=>a.status==="Agendado").length}</strong> apoios aguardam realização</span></div>`
+  ].join("");
+  renderNotifications();
+}
+function renderBenef(){
+ const q=(benefSearch?.value||"").toLowerCase(), p=benefPriority?.value||"";
+ const rows=data.beneficiarios.filter(b=>(!q||[b.name,b.phone,b.city,b.need].join(" ").toLowerCase().includes(q))&&(!p||b.priority===p));
+ benefTable.innerHTML=rows.map(b=>`<tr><td><span class="avatar me-2">${esc(b.name[0])}</span><strong>${esc(b.name)}</strong><div class="small text-secondary">${esc(b.email)}</div></td><td>${esc(b.phone)}</td><td>${esc(b.city)}</td><td>${esc(b.need)}</td><td><span class="badge text-bg-${priorityBadge(b.priority)} badge-soft">${b.priority}</span></td><td><button class="btn btn-sm btn-outline-success me-1" onclick="openRoute(${b.id})" aria-label="Abrir rota para o beneficiário" title="Abrir rota"><i class="bi bi-geo-alt"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editBenef(${b.id})" aria-label="Editar beneficiário" title="Editar"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteBenef(${b.id})" aria-label="Eliminar beneficiário" title="Eliminar"><i class="bi bi-trash"></i></button></td></tr>`).join("")||'<tr><td colspan="6" class="empty">Nenhum beneficiário encontrado.</td></tr>';
+}
+function renderMed(){
+ const q=(medSearch?.value||"").toLowerCase(), av=medAvailability?.value||"";
+ const rows=data.medicos.filter(m=>(!q||[m.name,m.spec,m.city].join(" ").toLowerCase().includes(q))&&(!av||m.avail===av));
+ medTable.innerHTML=rows.map(m=>`<tr><td><span class="avatar me-2 bg-success-subtle text-success">${esc(m.name.replace("Dr. ","").replace("Dra. ","")[0])}</span><strong>${esc(m.name)}</strong><div class="small text-secondary">${esc(m.reg)}</div></td><td>${esc(m.spec)}</td><td>${esc(m.phone)}</td><td>${esc(m.city)}</td><td><span class="badge text-bg-${m.avail==="Disponível"?"success":"warning"} badge-soft">${m.avail}</span></td><td>${qualityForDoctor(m.id)}</td><td><button class="btn btn-sm btn-outline-${m.avail==="Disponível"?"warning":"success"} me-1" onclick="toggleMedAvailability(${m.id})" title="${m.avail==="Disponível"?"Marcar em atendimento":"Marcar como disponível"}"><i class="bi bi-${m.avail==="Disponível"?"pause-circle":"play-circle"}"></i><span class="d-none d-xl-inline ms-1">${m.avail==="Disponível"?"Em atendimento":"Disponível"}</span></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editMed(${m.id})" aria-label="Editar médico" title="Editar"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteMed(${m.id})" aria-label="Eliminar médico" title="Eliminar"><i class="bi bi-trash"></i></button></td></tr>`).join("")||'<tr><td colspan="7" class="empty">Nenhum médico encontrado.</td></tr>';
+}
+function qualityForDoctor(id){
+  const ratings=(data.ratings||[]).filter(r=>r.med===id);
+  return ratings.length?`${Math.round(ratings.reduce((sum,r)=>sum+r.stars,0)/(ratings.length*5)*100)}%`:`Sem avaliações`;
+}
+function renderAvailableMedicos(){
+  const rows=data.medicos.filter(m=>m.avail==="Disponível");
+  availableMedTable.innerHTML=rows.map(m=>`<tr><td><span class="avatar me-2 bg-success-subtle text-success">${esc(m.name.replace("Dr. ","").replace("Dra. ","")[0])}</span><strong>${esc(m.name)}</strong></td><td>${esc(m.spec)}</td><td>${esc(m.city)}</td><td>${esc(m.areas||"—")}</td><td>${qualityForDoctor(m.id)}</td><td>${esc(m.phone)}<div class="small text-secondary">${esc(m.email)}</div></td></tr>`).join("")||'<tr><td colspan="6" class="empty">Não existem médicos disponíveis neste momento.</td></tr>';
+}
+function renderApoios(){
+ const canManage=currentSessionUser?.role!=="beneficiario";
+  const supports=getVisibleSupports().filter(matchesApoioFilters);
+ const pendingRatings=supports.filter(a=>a.status==="Realizado"&&!(data.ratings||[]).some(r=>r.apoio_id===a.id));
+ ratingPrompt.classList.toggle("d-none",!pendingRatings.length||currentSessionUser?.role!=="beneficiario");
+ ratingPrompt.classList.toggle("d-flex",pendingRatings.length>0&&currentSessionUser?.role==="beneficiario");
+ if(pendingRatings.length&&currentSessionUser?.role==="beneficiario"){const support=pendingRatings[0];ratingPrompt.innerHTML=`<span><i class="bi bi-star-fill me-2"></i>Tem uma consulta realizada para avaliar.</span><button class="btn btn-warning btn-sm" onclick="openRatingModal(${support.id})">Avaliar agora</button>`;}
+ apoioTable.innerHTML=supports.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(a=>{const rated=(data.ratings||[]).some(r=>r.apoio_id===a.id);const rateButton=currentSessionUser?.role==="beneficiario"&&a.status==="Realizado"&&!rated?`<button class="btn btn-sm btn-outline-warning" onclick="openRatingModal(${a.id})"><i class="bi bi-star me-1"></i>Classificar</button>`:rated?`<span class="badge text-bg-success badge-soft"><i class="bi bi-check2 me-1"></i>Avaliada</span>`:"";return `<tr><td><strong>${formatDate(a.date)}</strong></td><td>${esc(getBenef(a.benef)?.name||"—")}</td><td>${esc(getMed(a.med)?.name||"—")}</td><td>${esc(a.type)}</td><td>${canManage?`<select class="form-select form-select-sm" style="width:140px" onchange="changeStatus(${a.id},this.value)"><option ${a.status==="Agendado"?"selected":""}>Agendado</option><option ${a.status==="Realizado"?"selected":""}>Realizado</option><option ${a.status==="Cancelado"?"selected":""}>Cancelado</option></select>`:`<span class="badge text-bg-${a.status==="Realizado"?"success":a.status==="Cancelado"?"secondary":"primary"} badge-soft">${esc(a.status)}</span>`}</td><td>${canManage?`<button class="btn btn-sm btn-outline-danger" onclick="deleteApoio(${a.id})"><i class="bi bi-trash"></i></button>`:rateButton||"—"}</td></tr>`}).join("")||'<tr><td colspan="6" class="empty">Nenhum apoio agendado.</td></tr>';
+  renderCalendar(supports);
+}
+function setApoioView(view){
+  const calendar=view==="calendar";
+  apoioListView.classList.toggle("d-none",calendar);
+  apoioCalendarView.classList.toggle("d-none",!calendar);
+  calendarControls.classList.toggle("d-none",!calendar);
+  calendarControls.classList.toggle("d-flex",calendar);
+  listViewButton.classList.toggle("btn-primary",!calendar); listViewButton.classList.toggle("btn-outline-primary",calendar);
+  calendarViewButton.classList.toggle("btn-primary",calendar); calendarViewButton.classList.toggle("btn-outline-primary",!calendar);
+  if(calendar)renderCalendar(getVisibleSupports().filter(matchesApoioFilters));
+}
+function changeCalendarMonth(offset){calendarViewDate.setMonth(calendarViewDate.getMonth()+offset);renderCalendar(getVisibleSupports().filter(matchesApoioFilters));}
+function calendarDateKey(year,month,day){return `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;}
+function renderCalendar(supports){
+  const year=calendarViewDate.getFullYear(), month=calendarViewDate.getMonth();
+  calendarMonthLabel.textContent=calendarViewDate.toLocaleDateString("pt-PT",{month:"long",year:"numeric"});
+  const firstDay=(new Date(year,month,1).getDay()+6)%7, daysInMonth=new Date(year,month+1,0).getDate(), previousDays=new Date(year,month,0).getDate();
+  const weekdays=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+  let html=weekdays.map(day=>`<div class="calendar-weekday">${day}</div>`).join("");
+  const today=new Date().toISOString().slice(0,10);
+  for(let index=0;index<42;index++){
+    const dayNumber=index-firstDay+1, isPrevious=dayNumber<1, isNext=dayNumber>daysInMonth;
+    const day=isPrevious?previousDays+dayNumber:isNext?dayNumber-daysInMonth:dayNumber;
+    const cellMonth=isPrevious?month-1:isNext?month+1:month, cellYear=year+(cellMonth<0?-1:cellMonth>11?1:0), normalizedMonth=(cellMonth+12)%12;
+    const key=calendarDateKey(cellYear,normalizedMonth,day), daySupports=supports.filter(a=>a.date.slice(0,10)===key);
+    html+=`<div class="calendar-day ${isPrevious||isNext?"muted":""} ${key===today?"today":""}"><div class="calendar-number"><span>${day}</span>${daySupports.length?`<span class="badge rounded-pill text-bg-light">${daySupports.length}</span>`:""}</div>${daySupports.map(a=>`<button class="calendar-event ${a.status==="Realizado"?"done":a.status==="Cancelado"?"cancelled":"scheduled"}" type="button" title="${esc(`${formatDate(a.date)} — ${getBenef(a.benef)?.name||"Beneficiário"} — ${a.status}`)}">${esc(getBenef(a.benef)?.name||"Apoio")} · ${esc(a.status)}</button>`).join("")}</div>`;
+  }
+  apoioCalendar.innerHTML=html;
+}
+function getVisibleSupports(){
+  const beneficiaryId=currentSessionUser?.role==="beneficiario"?data.beneficiarios.find(b=>b.name===currentSessionUser.name&&b.email===currentSessionUser.email)?.id:null;
+  return beneficiaryId?data.apoios.filter(a=>a.benef===beneficiaryId):data.apoios;
+}
+function matchesApoioFilters(a){
+  const query=(apoioSearch?.value||"").trim().toLowerCase();
+  const status=apoioStatus?.value||"";
+  const dateFilter=apoioDateFilter?.value||"all";
+  const text=[getBenef(a.benef)?.name,getMed(a.med)?.name,a.type].join(" ").toLowerCase();
+  const date=new Date(a.date), now=new Date(), today=now.toISOString().slice(0,10), dateOnly=a.date.slice(0,10);
+  return (!query||text.includes(query))&&(!status||a.status===status)&&(
+    dateFilter==="all"||
+    (dateFilter==="today"&&dateOnly===today)||
+    (dateFilter==="upcoming"&&date>=now&&a.status!=="Cancelado")||
+    (dateFilter==="past"&&date<now)
+  );
+}
+function clearApoioFilters(){
+  apoioSearch.value=""; apoioStatus.value=""; apoioDateFilter.value="all"; renderApoios();
+}
+function renderNotifications(){
+  const pendingRatings=getVisibleSupports().filter(a=>a.status==="Realizado"&&!(data.ratings||[]).some(r=>r.apoio_id===a.id));
+  const today=new Date().toISOString().slice(0,10);
+  const todaySupports=getVisibleSupports().filter(a=>a.status==="Agendado"&&a.date.slice(0,10)===today);
+  const messages=[];
+  if(pendingRatings.length&&currentSessionUser?.role==="beneficiario")messages.push(`<i class="bi bi-star-fill text-warning me-2"></i>${pendingRatings.length} avaliação(ões) pendente(s)`);
+  if(todaySupports.length)messages.push(`<i class="bi bi-calendar-event text-primary me-2"></i>${todaySupports.length} apoio(s) agendado(s) para hoje`);
+  if(currentSessionUser?.role!=="beneficiario"){
+    const priorities=data.beneficiarios.filter(b=>b.priority==="Alta").length;
+    if(priorities)messages.push(`<i class="bi bi-exclamation-circle text-danger me-2"></i>${priorities} caso(s) de prioridade alta`);
+    const pendingRequests=(data.requests||[]).filter(request=>request.status==="Pendente").length;
+    if(pendingRequests)messages.push(`<i class="bi bi-inbox text-primary me-2"></i>${pendingRequests} pedido(s) de apoio pendente(s)`);
+  }
+  const button=document.getElementById("notificationButton"), badge=document.getElementById("notificationCount");
+  badge.textContent=messages.length; badge.classList.toggle("d-none",!messages.length);
+  const popover=bootstrap.Popover.getOrCreateInstance(button);
+  popover.setContent({".popover-body":messages.length?messages.map(message=>`<div class="mb-2">${message}</div>`).join(""):"Sem novas notificações."});
+}
+function renderComments(){
+  commentsTable.innerHTML=data.apoios.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(a=>{const rating=(data.ratings||[]).find(r=>r.apoio_id===a.id);return `<tr><td>${formatDate(a.date)}</td><td>${esc(getBenef(a.benef)?.name||"—")}</td><td>${esc(a.type)}</td><td><span class="badge text-bg-${a.status==="Realizado"?"success":a.status==="Cancelado"?"secondary":"primary"} badge-soft">${esc(a.status)}</span></td><td>${esc(a.notes||"Sem notas.")}</td><td>${rating?`${"★".repeat(rating.stars)}${"☆".repeat(5-rating.stars)}<div class="small mt-1">${esc(rating.comment)}</div>`:"Ainda sem avaliação."}</td></tr>`}).join("")||'<tr><td colspan="6" class="empty">Ainda não existem consultas.</td></tr>';
+}
+function openRatingModal(supportId){
+  ratingSupportId.value=supportId;
+  ratingStars.value="";
+  ratingComment.value="";
+  document.querySelectorAll(".rating-star").forEach(button=>button.classList.remove("active","bg-warning","text-white"));
+  const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById("ratingModal"));
+  modal.show();
+  document.getElementById("ratingModal").addEventListener("shown.bs.modal",()=>ratingComment.focus(),{once:true});
+}
+document.querySelectorAll(".rating-star").forEach(button=>button.onclick=()=>{
+  const stars=Number(button.dataset.stars);
+  ratingStars.value=stars;
+  document.querySelectorAll(".rating-star").forEach(item=>{
+    const active=Number(item.dataset.stars)<=stars;
+    item.classList.toggle("active",active);
+    item.classList.toggle("bg-warning",active);
+    item.classList.toggle("text-white",active);
+  });
+});
+ratingForm.onsubmit=async event=>{
+  event.preventDefault();
+  if(!ratingStars.value){toast("Escolha uma classificação de 1 a 5 estrelas.");return;}
+  const response=await fetch(`${apiUrl}?action=ratings`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({apoio_id:Number(ratingSupportId.value),stars:Number(ratingStars.value),comment:ratingComment.value.trim()})});
+  const result=await response.json();
+  if(!response.ok){toast(result.error||"Não foi possível guardar a classificação.");return;}
+  bootstrap.Modal.getInstance(ratingModal).hide();
+  await loadData();
+  toast("Obrigado pela sua avaliação.");
+};
+function renderReports(){
+  rBenef.textContent=data.beneficiarios.length;rMed.textContent=data.medicos.length;rDone.textContent=data.apoios.filter(x=>x.status==="Realizado").length;rPending.textContent=data.apoios.filter(x=>x.status==="Agendado").length;
+  const statuses=["Agendado","Realizado","Cancelado"], colors={Agendado:"primary",Realizado:"success",Cancelado:"secondary"};
+  reportStatusChart.innerHTML=statuses.map(status=>{const total=data.apoios.filter(item=>item.status===status).length;const percent=data.apoios.length?Math.round(total/data.apoios.length*100):0;return `<div class="mb-3"><div class="d-flex justify-content-between small mb-1"><span>${status}</span><strong>${total} (${percent}%)</strong></div><div class="progress" style="height:9px"><div class="progress-bar bg-${colors[status]}" style="width:${percent}%" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div></div></div>`}).join("");
+}
+function renderAll(){renderDashboard();renderBenef();renderMed();renderAvailableMedicos();renderApoios();renderComments();renderReports();}
+
+function renderRequests(){
+  if(!document.getElementById("requestsTable"))return;
+  const canManage=currentSessionUser?.role==="admin";
+  requestsTable.innerHTML=(data.requests||[]).map(request=>`<tr><td><strong>${esc(request.subject)}</strong><div class="small text-secondary text-truncate" style="max-width:320px">${esc(request.description)}</div></td><td>${esc(request.beneficiary_name||"—")}</td><td><span class="badge text-bg-${priorityBadge(request.priority)} badge-soft">${esc(request.priority)}</span></td><td>${formatDate(request.created_at)}</td><td>${canManage?`<select class="form-select form-select-sm" onchange="changeRequestStatus(${request.id},this.value)"><option ${request.status==="Pendente"?"selected":""}>Pendente</option><option ${request.status==="Em análise"?"selected":""}>Em análise</option><option ${request.status==="Aceite"?"selected":""}>Aceite</option><option ${request.status==="Concluído"?"selected":""}>Concluído</option><option ${request.status==="Cancelado"?"selected":""}>Cancelado</option></select>`:`<span class="badge text-bg-${request.status==="Concluído"?"success":request.status==="Cancelado"?"secondary":"primary"} badge-soft">${esc(request.status)}</span>`}</td><td>${canManage?`<button class="btn btn-sm btn-outline-primary" onclick="changeRequestStatus(${request.id},'Em análise')" title="Assumir pedido"><i class="bi bi-arrow-right-circle"></i></button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos de apoio.</td></tr>';
+}
+function openRequestModal(){requestForm.reset();bootstrap.Modal.getOrCreateInstance(requestModal).show();}
+requestForm.onsubmit=async event=>{event.preventDefault();const response=await fetch(`${apiUrl}?action=requests`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({subject:requestSubject.value.trim(),description:requestDescription.value.trim(),priority:requestPriority.value})});const result=await response.json();if(!response.ok){toast(result.error||"Não foi possível enviar o pedido.");return;}bootstrap.Modal.getInstance(requestModal).hide();await loadRequestsData(true);toast("Pedido de apoio enviado.");};
+async function changeRequestStatus(id,status){const response=await fetch(`${apiUrl}?action=requests`,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id,status})});if(!response.ok){toast("Não foi possível atualizar o pedido.");return;}await loadRequestsData(true);toast("Estado do pedido atualizado.");}
+
+function formatDate(s){const d=new Date(s);return Number.isNaN(d.getTime())?"—":d.toLocaleString("pt-PT",{dateStyle:"short",timeStyle:"short"})}
+function openRoute(id){
+  const beneficiary=getBenef(id);
+  if(!beneficiary)return;
+  const destination=[beneficiary.address,beneficiary.city].filter(Boolean).join(", ");
+  if(!destination){toast("Adicione a morada ou localidade do beneficiário primeiro.");return;}
+  const openMaps=origin=>{
+    const params=new URLSearchParams({api:"1",destination});
+    if(origin)params.set("origin",origin);
+    params.set("travelmode","driving");
+    window.open(`https://www.google.com/maps/dir/?${params.toString()}`,"_blank","noopener");
+  };
+  if(!navigator.geolocation){openMaps();return;}
+  navigator.geolocation.getCurrentPosition(
+    position=>openMaps(`${position.coords.latitude},${position.coords.longitude}`),
+    ()=>openMaps(),
+    {enableHighAccuracy:true,timeout:8000,maximumAge:300000}
+  );
+}
+function openBenefModal(id=null){
+ benefForm.reset();benefId.value=id||"";benefModalTitle.textContent=id?"Editar beneficiário":"Novo beneficiário";
+ if(id){const b=getBenef(id);Object.entries({bName:b.name,bBirth:b.birth,bPriority:b.priority,bPhone:b.phone,bEmail:b.email,bAddress:b.address,bCity:b.city,bNeed:b.need,bEmergency:b.emergency,bNotes:b.notes}).forEach(([k,v])=>document.getElementById(k).value=v||"")}
+ bootstrap.Modal.getOrCreateInstance(benefModal).show();
+}
+function editBenef(id){openBenefModal(id)}
+benefForm.onsubmit=e=>{e.preventDefault();const id=+benefId.value||nextId(data.beneficiarios), obj={id,name:bName.value,birth:bBirth.value,priority:bPriority.value,phone:bPhone.value,email:bEmail.value,address:bAddress.value,city:bCity.value,need:bNeed.value,emergency:bEmergency.value,notes:bNotes.value};const i=data.beneficiarios.findIndex(x=>x.id===id);i>=0?data.beneficiarios[i]=obj:data.beneficiarios.push(obj);save();bootstrap.Modal.getInstance(benefModal).hide();renderAll();toast("Beneficiário guardado com sucesso.");}
+function deleteBenef(id){if(confirm("Eliminar este beneficiário?")){data.beneficiarios=data.beneficiarios.filter(x=>x.id!==id);data.apoios=data.apoios.filter(x=>x.benef!==id);save();renderAll();toast("Beneficiário eliminado.");}}
+
+function openMedModal(id=null){
+ medForm.reset();medId.value=id||"";medModalTitle.textContent=id?"Editar médico voluntário":"Novo médico voluntário";
+ if(id){const m=getMed(id);Object.entries({mName:m.name,mSpec:m.spec,mPhone:m.phone,mEmail:m.email,mCity:m.city,mAvail:m.avail,mReg:m.reg,mAreas:m.areas}).forEach(([k,v])=>document.getElementById(k).value=v||"")}
+ bootstrap.Modal.getOrCreateInstance(medModal).show();
+}
+function editMed(id){openMedModal(id)}
+async function toggleMedAvailability(id){
+  const med=data.medicos.find(x=>x.id===id);
+  if(!med)return;
+  med.avail=med.avail==="Disponível"?"Em atendimento":"Disponível";
+  await save();
+  renderAll();
+  toast(`${med.name} está agora ${med.avail.toLowerCase()}.`);
+}
+medForm.onsubmit=e=>{e.preventDefault();const id=+medId.value||nextId(data.medicos),obj={id,name:mName.value,spec:mSpec.value,phone:mPhone.value,email:mEmail.value,city:mCity.value,avail:mAvail.value,reg:mReg.value,areas:mAreas.value};const i=data.medicos.findIndex(x=>x.id===id);i>=0?data.medicos[i]=obj:data.medicos.push(obj);save();bootstrap.Modal.getInstance(medModal).hide();renderAll();toast("Médico guardado com sucesso.");}
+function deleteMed(id){if(confirm("Eliminar este médico? Os apoios associados também serão removidos.")){data.medicos=data.medicos.filter(x=>x.id!==id);data.apoios=data.apoios.filter(x=>x.med!==id);save();renderAll();toast("Médico eliminado.");}}
+
+function fillApoioSelects(){
+  const beneficiaryId=currentSessionUser?.role==="beneficiario"?data.beneficiarios.find(b=>b.name===currentSessionUser.name&&b.email===currentSessionUser.email)?.id:null;
+  const beneficiaries=beneficiaryId?data.beneficiarios.filter(b=>b.id===beneficiaryId):data.beneficiarios;
+  aBenef.innerHTML='<option value="">Selecione...</option>'+beneficiaries.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");
+  aMed.innerHTML='<option value="">Selecione...</option>'+data.medicos.filter(m=>m.avail==="Disponível").map(m=>`<option value="${m.id}">${esc(m.name)} — ${esc(m.spec)}</option>`).join("");
+}
+function openApoioModal(){if(!data.beneficiarios.length||!data.medicos.length){alert("Registe pelo menos um beneficiário e um médico antes de agendar.");return}fillApoioSelects();apoioForm.reset();if(currentSessionUser?.role==="beneficiario"){const beneficiary=data.beneficiarios.find(b=>b.name===currentSessionUser.name&&b.email===currentSessionUser.email);if(beneficiary)aBenef.value=beneficiary.id;}aDate.value=new Date(Date.now()+86400000).toISOString().slice(0,16);bootstrap.Modal.getOrCreateInstance(apoioModal).show();}
+apoioForm.onsubmit=e=>{e.preventDefault();data.apoios.push({id:nextId(data.apoios),date:aDate.value,benef:+aBenef.value,med:+aMed.value,type:aType.value,status:"Agendado",notes:aNotes.value});save();bootstrap.Modal.getInstance(apoioModal).hide();renderAll();toast("Apoio agendado com sucesso.");}
+function changeStatus(id,status){const a=data.apoios.find(x=>x.id===id);if(a){a.status=status;save();renderAll();toast("Estado atualizado.");}}
+function deleteApoio(id){if(confirm("Eliminar este apoio?")){data.apoios=data.apoios.filter(x=>x.id!==id);save();renderAll();toast("Apoio eliminado.");}}
+function exportData(){
+  backupData();
+  const payload={exportedAt:new Date().toISOString(),application:"Apoio+",version:"2.0",data};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="apoio-plus-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(url);toast("Dados exportados e cópia local atualizada.");
+}
+function exportCsv(){
+  const rows=[["Tipo","Nome/Assunto","Estado/Prioridade","Data","Detalhe"]];
+  data.beneficiarios.forEach(item=>rows.push(["Beneficiário",item.name,item.priority,"",item.need]));
+  data.medicos.forEach(item=>rows.push(["Médico",item.name,item.avail,"",item.spec]));
+  data.apoios.forEach(item=>rows.push(["Apoio",getBenef(item.benef)?.name||"",item.status,item.date,getMed(item.med)?.name||""]));
+  (data.requests||[]).forEach(item=>rows.push(["Pedido",item.subject,item.priority,item.created_at,item.status]));
+  const csv=rows.map(row=>row.map(value=>`"${String(value??"").replace(/"/g,'""')}"`).join(";")).join("\r\n");
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`apoio-plus-relatorio-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(url);toast("Relatório CSV exportado.");
+}
+async function resetData(){if(confirm("Repor todos os dados de demonstração?")){localStorage.removeItem("apoioData");data=JSON.parse(JSON.stringify(seed));try{const response=await fetch(apiUrl,{method:"DELETE",headers:{Accept:"application/json"}});if(!response.ok)throw new Error("Não foi possível limpar o SQLite.");}catch(error){console.warn(error);}await save();renderAll();toast("Dados repostos.");}}
+logoutButton.onclick=async()=>{try{await fetch(`${apiUrl}?action=logout`,{method:"POST",headers:{Accept:"application/json"}});}finally{currentSessionUser=null;clearInterval(refreshTimer);document.getElementById("appShell").style.display="none";document.getElementById("authScreen").style.display="none";document.getElementById("roleScreen").style.display="none";document.getElementById("entryScreen").style.display="flex";toast("Sessão terminada.");}};
+benefSearch.oninput=renderBenef;benefPriority.onchange=renderBenef;medSearch.oninput=renderMed;medAvailability.onchange=renderMed;
+apoioSearch.oninput=renderApoios;apoioStatus.onchange=renderApoios;apoioDateFilter.onchange=renderApoios;
+renderAll();
+</script>
+</body>
+</html>
+
+
