@@ -40,3 +40,7 @@ Palavra-passe: admin123
 ```
 
 GitHub Pages não executa PHP. Nesse modo, a aplicação funciona com os dados de demonstração e grava as alterações no armazenamento local do navegador. Para uma base partilhada em produção, o `backend` deve ser alojado num servidor PHP com SQLite ou substituído por uma API com autenticação e base de dados remota.
+
+## Supabase e GitHub Pages
+
+Foi preparada uma configuração Supabase em [`supabase/`](./supabase/), com esquema PostgreSQL, autenticação por email e políticas RLS. Segue o guia em [`supabase/README.md`](./supabase/README.md). Não coloques chaves `service_role` no frontend.
