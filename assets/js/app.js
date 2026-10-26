@@ -4,37 +4,10 @@ document.getElementById("enterApp").onclick=()=>{
   document.getElementById("entryScreen").style.display="none";
   document.getElementById("authScreen").style.display="flex";
 };
-const apiUrl="backend/api.php";
-const localUsersKey="apoioUsers";
 let currentSessionUser=null;
 let refreshTimer=null;
 let calendarViewDate=new Date();
 const authRedirectUrl=window.location.origin+window.location.pathname;
-function localUsers(){
-  let stored=null;
-  try{stored=JSON.parse(localStorage.getItem(localUsersKey)||"null");}catch(error){localStorage.removeItem(localUsersKey);}
-  if(Array.isArray(stored)&&stored.length)return stored;
-  const users=[{id:1,username:"admin",password:"admin123",name:"Coordenação",email:"",phone:"",role:"admin",status:"approved",created_at:new Date().toISOString()}];
-  localStorage.setItem(localUsersKey,JSON.stringify(users));
-  return users;
-}
-function saveLocalUsers(users){localStorage.setItem(localUsersKey,JSON.stringify(users));}
-function localRegister(payload){
-  const username=String(payload.username||"").trim().toLowerCase();
-  const users=localUsers();
-  if(!/^[a-z0-9._-]{3,40}$/.test(username)||String(payload.password||"").length<8||!String(payload.name||"").trim()||!["beneficiario","medico"].includes(payload.role))return {ok:false,error:"Preencha os dados corretamente. A palavra-passe deve ter pelo menos 8 caracteres."};
-  if(users.some(user=>user.username===username))return {ok:false,error:"Esse nome de utilizador já existe."};
-  users.push({id:Math.max(...users.map(user=>Number(user.id)||0))+1,username,password:String(payload.password),name:String(payload.name).trim(),email:String(payload.email||"").trim(),phone:String(payload.phone||"").trim(),role:payload.role,status:"pending",created_at:new Date().toISOString()});
-  saveLocalUsers(users);
-  return {ok:true,message:"Conta criada. Aguarde aprovação da coordenação."};
-}
-function localLogin(username,password){
-  const user=localUsers().find(item=>item.username===String(username||"").trim().toLowerCase()&&item.password===String(password||""));
-  if(!user)return {ok:false,error:"Utilizador ou palavra-passe inválidos."};
-  if(user.status!=="approved")return {ok:false,error:user.status==="pending"?"A conta aguarda aprovação da coordenação.":"Esta conta foi recusada."};
-  const {password:ignored,...safeUser}=user;
-  return {ok:true,user:safeUser};
-}
 function showAuthMessage(message,success=false){
   const box=document.getElementById("authMessage");
   box.textContent=message; box.className=`alert ${success?"alert-success":"alert-danger"}`;
@@ -63,64 +36,28 @@ document.getElementById("registerForm").onsubmit=async event=>{
     password:document.getElementById("registerPassword").value,
     role:document.getElementById("registerRole").value
   };
+  if(!supabaseClient){showAuthMessage("Supabase não está configurado.");return;}
   try{
-    const response=await fetch(`${apiUrl}?action=register`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload)});
-    const result=await response.json();
-    showAuthMessage(result.message||result.error||"Não foi possível criar a conta.",response.ok);
-    if(response.ok){event.target.reset();document.getElementById("authSwitch").click();return;}
-    return;
-  }catch(error){
-    if(supabaseClient&&payload.email){
-      try{
-        const {error:supabaseError}=await supabaseClient.auth.signUp({email:payload.email,password:payload.password,options:{data:{name:payload.name,username:payload.username,phone:payload.phone,role:payload.role}}});
-        if(supabaseError)throw supabaseError;
-        showAuthMessage("Conta criada no Supabase. Confirma o email e aguarda aprovação da coordenação.",true);
-        event.target.reset();
-        document.getElementById("authSwitch").click();
-        return;
-      }catch(supabaseError){
-        showAuthMessage(supabaseError.message||"Não foi possível criar a conta.");
-        return;
-      }
-    }
-    const result=localRegister(payload);
-    showAuthMessage(result.message||result.error||"Não foi possível criar a conta.",result.ok);
-    if(result.ok){event.target.reset();document.getElementById("authSwitch").click();}
-  }
+    const {error}=await supabaseClient.auth.signUp({email:payload.email,password:payload.password,options:{data:{name:payload.name,username:payload.username,phone:payload.phone,role:payload.role}}});
+    if(error)throw error;
+    showAuthMessage("Conta criada no Supabase. Confirma o email e aguarda aprovação da coordenação.",true);
+    event.target.reset();
+    document.getElementById("authSwitch").click();
+  }catch(error){showAuthMessage(error.message||"Não foi possível criar a conta.");}
 };
 document.getElementById("loginForm").onsubmit=async event=>{
   event.preventDefault();
+  if(!supabaseClient){showAuthMessage("Supabase não está configurado.");return;}
   try{
-    const loginValue=loginUsername.value.trim();
-    const response=await fetch(`${apiUrl}?action=login`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({username:loginUsername.value,password:loginPassword.value})});
-    const result=await response.json();
-    if(!response.ok){
-      if(!(supabaseClient&&loginValue.includes("@")&&response.status===401)){
-        showAuthMessage(result.error||"Não foi possível iniciar sessão.");
-        return;
-      }
-      throw new Error("Conta não encontrada na API local.");
-    }
-    currentSessionUser=result.user;
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginUsername.value.trim(),password:loginPassword.value});
+    if(error)throw error;
+    const {data:profile,error:profileError}=await supabaseClient.from("profiles").select("id,username,name,email,phone,role,status").eq("id",data.user.id).single();
+    if(profileError)throw profileError;
+    if(profile.status!=="approved")throw new Error("A conta ainda aguarda aprovação da coordenação.");
+    currentSessionUser=profile;
   }catch(error){
-    if(supabaseClient&&loginUsername.value.includes("@")){
-      try{
-        const {data,error:supabaseError}=await supabaseClient.auth.signInWithPassword({email:loginUsername.value.trim(),password:loginPassword.value});
-        if(supabaseError)throw supabaseError;
-        const {data:profile,error:profileError}=await supabaseClient.from("profiles").select("id,username,name,email,phone,role,status").eq("id",data.user.id).single();
-        if(profileError)throw profileError;
-        if(profile.status!=="approved")throw new Error("A conta ainda aguarda aprovação da coordenação.");
-        currentSessionUser=profile;
-      }catch(supabaseError){
-        showAuthMessage(supabaseError.message||"Não foi possível iniciar sessão.");
-        return;
-      }
-    }else{
-      const result=localLogin(loginUsername.value,loginPassword.value);
-      if(!result.ok){showAuthMessage(`${result.error} Modo GitHub: os dados ficam guardados neste navegador.`);return;}
-      currentSessionUser=result.user;
-      showAuthMessage("Modo GitHub Pages: os dados ficam guardados neste navegador.",true);
-    }
+    showAuthMessage(error.message||"Não foi possível iniciar sessão.");
+    return;
   }
   document.getElementById("authScreen").style.display="none";
   await enterRole(currentSessionUser.role,currentSessionUser.role==="admin"?"dashboard":currentSessionUser.role==="medico"?"dashboard":"apoios");
@@ -147,23 +84,6 @@ async function enterRole(role,page){
 }
 document.getElementById("beneficiaryEntry").onclick=()=>enterRole("beneficiario","apoios");
 document.getElementById("doctorEntry").onclick=()=>enterRole("medico","dashboard");
-const seed = {
-  beneficiarios:[
-    {id:1,name:"Maria da Silva",birth:"1943-05-12",priority:"Alta",phone:"912 345 678",email:"maria@example.pt",address:"Rua das Flores, 12",city:"Figueira da Foz",need:"Cuidados médicos",emergency:"Ana Silva — 913 111 222",notes:"Necessita de acompanhamento regular."},
-    {id:2,name:"João Santos",birth:"1951-09-20",priority:"Média",phone:"914 222 333",email:"joao@example.pt",address:"Rua Central, 45",city:"Coimbra",need:"Medicação",emergency:"Pedro Santos — 914 555 666",notes:"Apoio na gestão da medicação."},
-    {id:3,name:"António Costa",birth:"1938-02-03",priority:"Baixa",phone:"916 444 555",email:"",address:"Av. Principal, 8",city:"Montemor-o-Velho",need:"Acompanhamento",emergency:"",notes:"Acompanhamento social."}
-  ],
-  medicos:[
-    {id:1,name:"Dr. Ricardo Almeida",spec:"Medicina Geral e Familiar",phone:"917 123 456",email:"ricardo@voluntarios.pt",city:"Figueira da Foz",avail:"Disponível",reg:"OM-12345",areas:"Idosos, acompanhamento"},
-    {id:2,name:"Dra. Sofia Martins",spec:"Medicina Interna",phone:"918 222 333",email:"sofia@voluntarios.pt",city:"Coimbra",avail:"Disponível",reg:"OM-23456",areas:"Doença crónica, idosos"},
-    {id:3,name:"Dr. Miguel Ferreira",spec:"Cardiologia",phone:"919 333 444",email:"miguel@voluntarios.pt",city:"Leiria",avail:"Indisponível",reg:"OM-34567",areas:"Cardiologia"}
-  ],
-  apoios:[
-    {id:1,date:"2026-09-18T10:00",benef:1,med:1,type:"Consulta domiciliária",status:"Agendado",notes:"Avaliação geral"},
-    {id:2,date:"2026-09-19T14:30",benef:2,med:2,type:"Seguimento",status:"Agendado",notes:"Rever medicação"},
-    {id:3,date:"2026-09-10T11:00",benef:3,med:1,type:"Acompanhamento",status:"Realizado",notes:"Visita de acompanhamento"}
-  ]
-};
 function normalizeData(value){
   return {
     beneficiarios:(value.beneficiarios||[]).map(x=>({...x,id:Number(x.id)})),
@@ -172,7 +92,7 @@ function normalizeData(value){
     ratings:(value.ratings||[]).map(x=>({...x,id:Number(x.id),apoio_id:Number(x.apoio_id),benef:Number(x.benef),med:Number(x.med),stars:Number(x.stars)}))
   };
 }
-let data = normalizeData(JSON.parse(localStorage.getItem("apoioData")) || JSON.parse(JSON.stringify(seed)));
+let data = normalizeData({});
 data.requests=[];
 const usesSupabase=()=>Boolean(supabaseClient&&currentSessionUser?.id);
 async function supabaseLoadData(){
@@ -207,35 +127,14 @@ async function supabaseLoadRequests(){
   data.requests=(result.data||[]).map(item=>({...item,beneficiary_name:getBenef(item.beneficiary_id)?.name||item.beneficiary_name||"—"}));
 }
 async function loadData(showError=true){
-  if(usesSupabase()){
-    try{data=await supabaseLoadData();localStorage.setItem("apoioData",JSON.stringify(data));renderAll();return}
-    catch(error){console.warn(error);if(showError)toast("Não foi possível carregar os dados do Supabase.");return}
-  }
-  try{
-    const response=await fetch(apiUrl,{headers:{Accept:"application/json"}});
-    if(!response.ok)throw new Error("Não foi possível carregar o SQLite.");
-    const payload=await response.json();
-    data=normalizeData(payload);
-    localStorage.setItem("apoioData",JSON.stringify(data));
-    renderAll();
-  }catch(error){
-    console.warn(error);
-    if(showError)toast("Servidor PHP indisponível. A usar os dados locais.");
-  }
+  if(!usesSupabase()){if(showError)toast("Supabase não está configurado.");return;}
+  try{data=await supabaseLoadData();renderAll();}
+  catch(error){console.error(error);if(showError)toast("Não foi possível carregar os dados do Supabase.");}
 }
 async function loadRequestsData(showError=false){
-  if(usesSupabase()){
-    try{await supabaseLoadRequests();renderRequests();renderNotifications();return}
-    catch(error){console.warn(error);if(showError)toast("Não foi possível carregar os pedidos do Supabase.");return}
-  }
-  try{
-    const response=await fetch(`${apiUrl}?action=requests`,{headers:{Accept:"application/json"}});
-    if(!response.ok)throw new Error("Não foi possível carregar os pedidos.");
-    const result=await response.json();
-    data.requests=result.requests||[];
-    renderRequests();
-    renderNotifications();
-  }catch(error){if(showError)console.warn(error);}
+  if(!usesSupabase()){if(showError)toast("Supabase não está configurado.");return;}
+  try{await supabaseLoadRequests();renderRequests();renderNotifications();}
+  catch(error){console.error(error);if(showError)toast("Não foi possível carregar os pedidos do Supabase.");}
 }
 function startAutoRefresh(){
   clearInterval(refreshTimer);
@@ -247,74 +146,29 @@ function startAutoRefresh(){
   },10000);
 }
 async function loadUsers(){
-  if(usesSupabase()){
-    const result=await supabaseClient.from("profiles").select("id,username,name,email,phone,role,status,created_at").order("created_at",{ascending:false});
-    if(result.error){toast("Não foi possível carregar os perfis.");return}
-    usersTable.innerHTML=result.data.map(user=>`<tr><td><strong>${esc(user.name)}</strong></td><td>${esc(user.phone||"—")}<div class="small text-secondary">${esc(user.email||"")}</div></td><td>${esc(user.username||"—")}</td><td>${user.role==="medico"?"Médico voluntário":user.role==="beneficiario"?"Beneficiário":"Coordenação"}</td><td><span class="badge text-bg-${user.status==="approved"?"success":user.status==="pending"?"warning":"danger"} badge-soft">${user.status==="approved"?"Aprovado":user.status==="pending"?"Pendente":"Recusado"}</span></td><td>${user.role!=="admin"?`${user.status==="pending"?`<button class="btn btn-sm btn-success me-1" onclick="approveUser('${user.id}','approved')">Aprovar</button><button class="btn btn-sm btn-outline-danger me-1" onclick="approveUser('${user.id}','rejected')">Recusar</button>`:""}<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}','${esc(user.name)}')"><i class="bi bi-trash me-1"></i>Eliminar</button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos.</td></tr>';
-    return;
-  }
-  let result;
-  try{
-    const response=await fetch(`${apiUrl}?action=users`,{headers:{Accept:"application/json"}});
-    if(!response.ok)throw new Error("API indisponível");
-    result=await response.json();
-  }catch(error){result={users:localUsers().map(({password,...user})=>user)};}
-  usersTable.innerHTML=result.users.map(user=>`<tr><td><strong>${esc(user.name)}</strong></td><td>${esc(user.phone||"—")}<div class="small text-secondary">${esc(user.email)}</div></td><td>${esc(user.username)}</td><td>${user.role==="medico"?"Médico voluntário":user.role==="beneficiario"?"Beneficiário":"Coordenação"}</td><td><span class="badge text-bg-${user.status==="approved"?"success":user.status==="pending"?"warning":"danger"} badge-soft">${user.status==="approved"?"Aprovado":user.status==="pending"?"Pendente":"Recusado"}</span></td><td>${user.role!=="admin"?`${user.status==="pending"?`<button class="btn btn-sm btn-success me-1" onclick="approveUser(${user.id},'approved')">Aprovar</button><button class="btn btn-sm btn-outline-danger me-1" onclick="approveUser(${user.id},'rejected')">Recusar</button>`:""}<button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id},'${esc(user.name)}')"><i class="bi bi-trash me-1"></i>Eliminar</button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos.</td></tr>';
+  if(!usesSupabase()){toast("Supabase não está configurado.");return;}
+  const result=await supabaseClient.from("profiles").select("id,username,name,email,phone,role,status,created_at").order("created_at",{ascending:false});
+  if(result.error){toast("Não foi possível carregar os perfis.");return;}
+  usersTable.innerHTML=(result.data||[]).map(user=>`<tr><td><strong>${esc(user.name)}</strong></td><td>${esc(user.phone||"—")}<div class="small text-secondary">${esc(user.email||"")}</div></td><td>${esc(user.username||"—")}</td><td>${user.role==="medico"?"Médico voluntário":user.role==="beneficiario"?"Beneficiário":"Coordenação"}</td><td><span class="badge text-bg-${user.status==="approved"?"success":user.status==="pending"?"warning":"danger"} badge-soft">${user.status==="approved"?"Aprovado":user.status==="pending"?"Pendente":"Recusado"}</span></td><td>${user.role!=="admin"?`${user.status==="pending"?`<button class="btn btn-sm btn-success me-1" onclick="approveUser('${user.id}','approved')">Aprovar</button><button class="btn btn-sm btn-outline-danger me-1" onclick="approveUser('${user.id}','rejected')">Recusar</button>`:""}<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}','${esc(user.name)}')"><i class="bi bi-trash me-1"></i>Eliminar</button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos.</td></tr>';
 }
 async function approveUser(id,status){
-  if(usesSupabase()){
-    const result=await supabaseClient.from("profiles").update({status}).eq("id",id);
-    if(result.error){toast("Não foi possível atualizar a conta.");return}
-    await loadUsers();toast(status==="approved"?"Conta aprovada.":"Conta recusada.");return;
-  }
-  try{
-    const response=await fetch(`${apiUrl}?action=users`,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id,status})});
-    if(!response.ok)throw new Error("API indisponível");
-  }catch(error){
-    const users=localUsers();
-    const user=users.find(item=>Number(item.id)===Number(id));
-    if(!user){toast("Não foi possível atualizar a conta.");return;}
-    user.status=status;saveLocalUsers(users);
-  }
-  await loadUsers(); toast(status==="approved"?"Conta aprovada.":"Conta recusada.");
+  if(!usesSupabase()){toast("Supabase não está configurado.");return;}
+  const result=await supabaseClient.from("profiles").update({status}).eq("id",id);
+  if(result.error){toast("Não foi possível atualizar a conta.");return;}
+  await loadUsers();toast(status==="approved"?"Conta aprovada.":"Conta recusada.");
 }
 async function deleteUser(id,name){
   if(!confirm(`Eliminar o utilizador ${name}? O perfil e as consultas associadas também serão removidos.`))return;
-  if(usesSupabase()){
-    const result=await supabaseClient.from("profiles").delete().eq("id",id);
-    if(result.error){toast("Não foi possível eliminar o utilizador.");return}
-    await loadUsers();toast("Utilizador eliminado.");return;
-  }
-  try{
-    const response=await fetch(`${apiUrl}?action=users`,{method:"DELETE",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id})});
-    const result=await response.json();
-    if(!response.ok){toast(result.error||"Não foi possível eliminar o utilizador.");return;}
-  }catch(error){saveLocalUsers(localUsers().filter(user=>Number(user.id)!==Number(id)));}
-  await loadUsers();
-  await loadData(false);
-  toast("Utilizador eliminado.");
+  if(!usesSupabase()){toast("Supabase não está configurado.");return;}
+  const result=await supabaseClient.from("profiles").delete().eq("id",id);
+  if(result.error){toast("Não foi possível eliminar o utilizador.");return;}
+  await loadUsers();await loadData(false);toast("Utilizador eliminado.");
 }
 async function save(){
-  localStorage.setItem("apoioData",JSON.stringify(data));
-  backupData();
-  if(usesSupabase()){
-    try{await supabaseSaveData();return true}catch(error){console.error(error);toast(error.code==="23P01"?"O médico já está ocupado nesse horário.":"Não foi possível guardar no Supabase.");return false}
-  }
-  try{
-    const response=await fetch(apiUrl,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(data)});
-    if(!response.ok)throw new Error("Não foi possível guardar no SQLite.");
-    data=normalizeData(await response.json());
-    localStorage.setItem("apoioData",JSON.stringify(data));
-    return true;
-  }catch(error){
-    console.warn(error);
-    toast("Alteração guardada localmente, mas não foi enviada para o SQLite.");
-    return false;
-  }
+  if(!usesSupabase()){toast("Supabase não está configurado.");return false;}
+  try{await supabaseSaveData();return true}
+  catch(error){console.error(error);toast(error.code==="23P01"?"O médico já está ocupado nesse horário.":"Não foi possível guardar no Supabase.");return false}
 }
-const backupKey="apoioDataBackup";
-function backupData(){ localStorage.setItem(backupKey,JSON.stringify({savedAt:new Date().toISOString(),data})); }
-async function restoreBackup(){ const raw=localStorage.getItem(backupKey); if(!raw){toast("Ainda não existe uma cópia de segurança.");return;} if(confirm("Restaurar a última cópia de segurança?")){data=normalizeData(JSON.parse(raw).data);await save();renderAll();toast("Cópia de segurança restaurada.");} }
 function nextId(list){ return list.reduce((max,x)=>Math.max(max,Number(x.id)||0),0)+1; }
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 const getBenef=id=>data.beneficiarios.find(x=>x.id==id);
@@ -487,14 +341,9 @@ document.querySelectorAll(".rating-star").forEach(button=>button.onclick=()=>{
 ratingForm.onsubmit=async event=>{
   event.preventDefault();
   if(!ratingStars.value){toast("Escolha uma classificação de 1 a 5 estrelas.");return;}
-  if(usesSupabase()){
-    const result=await supabaseClient.from("ratings").insert({support_id:Number(ratingSupportId.value),author_id:currentSessionUser.id,stars:Number(ratingStars.value),comment:ratingComment.value.trim()});
-    if(result.error){toast(result.error.message||"Não foi possível guardar a classificação.");return}
-    bootstrap.Modal.getInstance(ratingModal).hide();await loadData();toast("Obrigado pela sua avaliação.");return;
-  }
-  const response=await fetch(`${apiUrl}?action=ratings`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({apoio_id:Number(ratingSupportId.value),stars:Number(ratingStars.value),comment:ratingComment.value.trim()})});
-  const result=await response.json();
-  if(!response.ok){toast(result.error||"Não foi possível guardar a classificação.");return;}
+  if(!usesSupabase()){toast("Supabase não está configurado.");return;}
+  const result=await supabaseClient.from("ratings").insert({support_id:Number(ratingSupportId.value),author_id:currentSessionUser.id,stars:Number(ratingStars.value),comment:ratingComment.value.trim()});
+  if(result.error){toast(result.error.message||"Não foi possível guardar a classificação.");return}
   bootstrap.Modal.getInstance(ratingModal).hide();
   await loadData();
   toast("Obrigado pela sua avaliação.");
@@ -514,17 +363,17 @@ function renderRequests(){
 function openRequestModal(){requestForm.reset();bootstrap.Modal.getOrCreateInstance(requestModal).show();}
 requestForm.onsubmit=async event=>{
   event.preventDefault();
-  if(usesSupabase()){
-    const ownBeneficiary=data.beneficiarios.find(item=>item.profile_id===currentSessionUser.id);
-    const result=await supabaseClient.from("support_requests").insert({beneficiary_id:ownBeneficiary?.id||null,subject:requestSubject.value.trim(),description:requestDescription.value.trim(),priority:requestPriority.value});
-    if(result.error){toast(result.error.message||"Não foi possível enviar o pedido.");return}
-    bootstrap.Modal.getInstance(requestModal).hide();await loadRequestsData(true);toast("Pedido de apoio enviado.");return;
-  }
-  const response=await fetch(`${apiUrl}?action=requests`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({subject:requestSubject.value.trim(),description:requestDescription.value.trim(),priority:requestPriority.value})});const result=await response.json();if(!response.ok){toast(result.error||"Não foi possível enviar o pedido.");return;}bootstrap.Modal.getInstance(requestModal).hide();await loadRequestsData(true);toast("Pedido de apoio enviado.");
+  if(!usesSupabase()){toast("Supabase não está configurado.");return;}
+  const ownBeneficiary=data.beneficiarios.find(item=>item.profile_id===currentSessionUser.id);
+  const result=await supabaseClient.from("support_requests").insert({beneficiary_id:ownBeneficiary?.id||null,subject:requestSubject.value.trim(),description:requestDescription.value.trim(),priority:requestPriority.value});
+  if(result.error){toast(result.error.message||"Não foi possível enviar o pedido.");return}
+  bootstrap.Modal.getInstance(requestModal).hide();await loadRequestsData(true);toast("Pedido de apoio enviado.");
 };
 async function changeRequestStatus(id,status){
-  if(usesSupabase()){const result=await supabaseClient.from("support_requests").update({status}).eq("id",id);if(result.error){toast("Não foi possível atualizar o pedido.");return}await loadRequestsData(true);toast("Estado do pedido atualizado.");return}
-  const response=await fetch(`${apiUrl}?action=requests`,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({id,status})});if(!response.ok){toast("Não foi possível atualizar o pedido.");return;}await loadRequestsData(true);toast("Estado do pedido atualizado.");
+  if(!usesSupabase()){toast("Supabase não está configurado.");return;}
+  const result=await supabaseClient.from("support_requests").update({status}).eq("id",id);
+  if(result.error){toast("Não foi possível atualizar o pedido.");return}
+  await loadRequestsData(true);toast("Estado do pedido atualizado.");
 }
 
 function formatDate(s){const d=new Date(s);return Number.isNaN(d.getTime())?"—":d.toLocaleString("pt-PT",{dateStyle:"short",timeStyle:"short"})}
@@ -615,10 +464,9 @@ apoioForm.onsubmit=async e=>{
 function changeStatus(id,status){const a=data.apoios.find(x=>x.id===id);if(a){a.status=status;save();renderAll();toast("Estado atualizado.");}}
 async function deleteApoio(id){if(confirm("Eliminar este apoio?")){if(usesSupabase()){const result=await supabaseClient.from("supports").delete().eq("id",id);if(result.error){toast("Não foi possível eliminar o apoio.");return}}data.apoios=data.apoios.filter(x=>x.id!==id);await save();renderAll();toast("Apoio eliminado.");}}
 function exportData(){
-  backupData();
   const payload={exportedAt:new Date().toISOString(),application:"Apoio+",version:"2.0",data};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url;a.download="apoio-plus-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(url);toast("Dados exportados e cópia local atualizada.");
+  a.href=url;a.download="apoio-plus-export-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(url);toast("Dados exportados.");
 }
 function exportCsv(){
   const rows=[["Tipo","Nome/Assunto","Estado/Prioridade","Data","Detalhe"]];
@@ -629,8 +477,8 @@ function exportCsv(){
   const csv=rows.map(row=>row.map(value=>`"${String(value??"").replace(/"/g,'""')}"`).join(";")).join("\r\n");
   const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`apoio-plus-relatorio-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(url);toast("Relatório CSV exportado.");
 }
-async function resetData(){if(confirm("Repor todos os dados de demonstração?")){localStorage.removeItem("apoioData");data=JSON.parse(JSON.stringify(seed));try{const response=await fetch(apiUrl,{method:"DELETE",headers:{Accept:"application/json"}});if(!response.ok)throw new Error("Não foi possível limpar o SQLite.");}catch(error){console.warn(error);}await save();renderAll();toast("Dados repostos.");}}
-logoutButton.onclick=async()=>{try{if(supabaseClient)await supabaseClient.auth.signOut();await fetch(`${apiUrl}?action=logout`,{method:"POST",headers:{Accept:"application/json"}});}finally{currentSessionUser=null;clearInterval(refreshTimer);document.getElementById("appShell").style.display="none";document.getElementById("authScreen").style.display="none";document.getElementById("roleScreen").style.display="none";document.getElementById("entryScreen").style.display="flex";toast("Sessão terminada.");}};
+async function resetData(){if(confirm("Apagar todos os dados da aplicação no Supabase?")){if(!usesSupabase()){toast("Supabase não está configurado.");return;}const operations=await Promise.all(["ratings","supports","support_requests","volunteers","beneficiaries"].map(table=>supabaseClient.from(table).delete().not("id","is",null)));const failure=operations.find(result=>result.error);if(failure){toast("Não foi possível apagar os dados no Supabase.");return;}await loadData();await loadRequestsData();toast("Dados apagados.");}}
+logoutButton.onclick=async()=>{try{if(supabaseClient)await supabaseClient.auth.signOut();}finally{currentSessionUser=null;clearInterval(refreshTimer);document.getElementById("appShell").style.display="none";document.getElementById("authScreen").style.display="none";document.getElementById("roleScreen").style.display="none";document.getElementById("entryScreen").style.display="flex";toast("Sessão terminada.");}};
 benefSearch.oninput=renderBenef;benefPriority.onchange=renderBenef;medSearch.oninput=renderMed;medAvailability.onchange=renderMed;
 apoioSearch.oninput=renderApoios;apoioStatus.onchange=renderApoios;apoioDateFilter.onchange=renderApoios;
 renderAll();

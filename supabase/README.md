@@ -62,6 +62,6 @@ Não tornes todos os utilizadores administradores.
 
 ## Estado atual da integração
 
-O frontend já carrega o cliente Supabase e usa Supabase Auth quando o utilizador inicia sessão com email. O registo também cria a conta no Supabase quando é indicado um email. Os módulos de dados mantêm fallback local/PHP enquanto a migração completa das operações CRUD para as tabelas Supabase é validada.
+O frontend usa exclusivamente Supabase Auth e as tabelas Supabase para autenticação, leitura e operações CRUD. Não existe fallback para PHP, SQLite ou armazenamento local do navegador.
 
 Se executaste uma versão anterior do `schema.sql`, executa novamente a secção da função e trigger `handle_new_user` para que username e telefone sejam copiados dos metadados do registo.

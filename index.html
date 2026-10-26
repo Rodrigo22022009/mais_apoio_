@@ -178,7 +178,7 @@
       </section>
 
       <div class="alert alert-primary privacy-note d-flex gap-3 align-items-start" role="alert">
-        <i class="bi bi-shield-lock fs-5"></i><div><strong>Privacidade:</strong> os dados são guardados no SQLite através do servidor PHP. O navegador mantém apenas uma cópia local de apoio quando o servidor está indisponível. Para utilização real, devem ser implementados autenticação, permissões, cópias de segurança e proteção adequada de dados pessoais.</div>
+        <i class="bi bi-shield-lock fs-5"></i><div><strong>Privacidade:</strong> os dados são guardados no Supabase, com autenticação e permissões definidas pelas políticas RLS.</div>
       </div>
       <!-- BENEFICIARIOS -->
       <section id="beneficiarios" class="page-section">
@@ -253,12 +253,10 @@
 
       <!-- RELATORIOS -->
       <section id="relatorios" class="page-section">
-        <div class="privacy-note mb-3"><i class="bi bi-shield-lock me-1"></i><strong>Privacidade:</strong> os dados são guardados numa base SQLite através do servidor PHP. Não introduza dados clínicos reais sem autenticação, permissões e proteção adequada.</div>
+        <div class="privacy-note mb-3"><i class="bi bi-shield-lock me-1"></i><strong>Privacidade:</strong> os dados são guardados no Supabase. Não introduza dados clínicos reais sem autenticação, permissões e proteção adequada.</div>
         <div class="row g-3">
           <div class="col-md-6"><div class="card app-card p-4"><h5>Resumo operacional</h5><hr><div class="d-flex justify-content-between py-2"><span>Total de beneficiários</span><strong id="rBenef">0</strong></div><div class="d-flex justify-content-between py-2"><span>Médicos registados</span><strong id="rMed">0</strong></div><div class="d-flex justify-content-between py-2"><span>Apoios realizados</span><strong id="rDone">0</strong></div><div class="d-flex justify-content-between py-2"><span>Apoios pendentes</span><strong id="rPending">0</strong></div></div></div>
-          <div class="col-md-6"><div class="card app-card p-4"><h5>Dados da aplicação</h5><p class="text-secondary">Os dados são guardados numa base SQLite através do servidor PHP. As cópias de segurança continuam disponíveis neste navegador.</p><div class="d-flex flex-wrap gap-2">
-<button class="btn btn-outline-primary" onclick="backupData();toast('Cópia de segurança criada neste navegador.')"><i class="bi bi-cloud-arrow-down me-1"></i>Criar cópia local</button>
-<button class="btn btn-outline-secondary" onclick="restoreBackup()"><i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar cópia</button>
+          <div class="col-md-6"><div class="card app-card p-4"><h5>Dados da aplicação</h5><p class="text-secondary">Os dados são guardados exclusivamente no Supabase.</p><div class="d-flex flex-wrap gap-2">
 <button class="btn btn-outline-danger" onclick="resetData()"><i class="bi bi-trash me-1"></i>Repor dados de demonstração</button>
 <button class="btn btn-outline-success" onclick="exportCsv()"><i class="bi bi-filetype-csv me-1"></i>Exportar CSV</button>
 </div></div></div>
