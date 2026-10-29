@@ -1,5 +1,8 @@
 
-const supabaseClient=window.supabase?.createClient(window.SUPABASE_CONFIG.url,window.SUPABASE_CONFIG.publishableKey);
+const supabaseConfig=window.SUPABASE_CONFIG;
+const supabaseClient=window.supabase&&supabaseConfig?.url&&supabaseConfig?.publishableKey
+  ? window.supabase.createClient(supabaseConfig.url,supabaseConfig.publishableKey)
+  : null;
 document.getElementById("enterApp").onclick=()=>{
   document.getElementById("entryScreen").style.display="none";
   document.getElementById("authScreen").style.display="flex";
@@ -26,26 +29,92 @@ document.getElementById("forgotPassword").onclick=async()=>{
   const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});
   showAuthMessage(error?.message||"Se o email existir, receberá uma ligação para redefinir a palavra-passe.",!error);
 };
-document.getElementById("registerForm").onsubmit=async event=>{
+
+document.getElementById("registerForm").onsubmit = async event => {
   event.preventDefault();
-  const payload={
-    name:document.getElementById("registerName").value,
-    username:document.getElementById("registerUsername").value,
-    email:document.getElementById("registerEmail").value,
-    phone:document.getElementById("registerPhone").value,
-    password:document.getElementById("registerPassword").value,
-    role:document.getElementById("registerRole").value
+
+  const form = event.target;
+  const button = form.querySelector("button[type='submit'], button:not([type])");
+
+  if (button?.disabled) return;
+
+  const payload = {
+    name: document.getElementById("registerName").value.trim(),
+    username: document.getElementById("registerUsername").value.trim(),
+    email: document.getElementById("registerEmail").value.trim(),
+    phone: document.getElementById("registerPhone").value.trim(),
+    password: document.getElementById("registerPassword").value,
+    role: document.getElementById("registerRole").value
   };
-  if(!supabaseClient){showAuthMessage("Supabase não está configurado.");return;}
-  try{
-    const {error}=await supabaseClient.auth.signUp({email:payload.email,password:payload.password,options:{data:{name:payload.name,username:payload.username,phone:payload.phone,role:payload.role}}});
-    if(error)throw error;
-    showAuthMessage("Conta criada no Supabase. Confirma o email e aguarda aprovação da coordenação.",true);
-    event.target.reset();
+
+  if (!supabaseClient) {
+    showAuthMessage("Supabase não está configurado.");
+    return;
+  }
+
+  if (!payload.email) {
+    showAuthMessage("Introduza um endereço de email válido.");
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "A criar conta...";
+  }
+
+  try {
+    const { error } = await supabaseClient.auth.signUp({
+      email: payload.email,
+      password: payload.password,
+      options: {
+        data: {
+          name: payload.name,
+          username: payload.username,
+          phone: payload.phone,
+          role: payload.role
+        }
+      }
+    });
+
+    if (error) throw error;
+
+    form.reset();
     document.getElementById("authSwitch").click();
-  }catch(error){showAuthMessage(error.message||"Não foi possível criar a conta.");}
+
+    showAuthMessage(
+      "Pedido de registo enviado. Confirme o email, se solicitado, e aguarde a aprovação da coordenação.",
+      true
+    );
+  } catch (error) {
+    console.error("Erro ao criar perfil:", error);
+
+    const message = String(error?.message || "").toLowerCase();
+    const code = error?.code || "";
+
+    if (
+      code === "over_email_send_rate_limit" ||
+      message.includes("email rate limit exceeded")
+    ) {
+      showAuthMessage(
+        "O Supabase atingiu o limite de envio de emails. Não repita já o registo: verifique Authentication > Users, porque o utilizador pode ter sido criado mas estar sem confirmação. Para continuar a criar contas, aguarde ou configure um SMTP próprio no Supabase."
+      );
+    } else if (code === "over_request_rate_limit") {
+      showAuthMessage(
+        "Foram feitas demasiadas tentativas. Aguarde alguns minutos antes de voltar a tentar."
+      );
+    } else {
+      showAuthMessage(
+        error?.message || "Não foi possível criar a conta. Tente novamente mais tarde."
+      );
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Criar conta";
+    }
+  }
 };
-document.getElementById("loginForm").onsubmit=async event=>{
+document.getElementById("loginForm").onsubmit = async event => {
   event.preventDefault();
   if(!supabaseClient){showAuthMessage("Supabase não está configurado.");return;}
   try{
@@ -104,11 +173,12 @@ async function supabaseLoadData(){
   ]);
   const failure=[beneficiaries,volunteers,supports,ratings].find(result=>result.error);
   if(failure)throw failure.error;
+  const supportRows=supports.data.map(item=>({id:item.id,date:item.scheduled_at,duration:Number(item.duration_minutes)||60,benef:item.beneficiary_id,med:item.volunteer_id,type:item.type,status:item.status,notes:item.notes||""}));
   return normalizeData({
     beneficiarios:beneficiaries.data.map(item=>({id:item.id,profile_id:item.profile_id||null,name:item.name,birth:item.birth_date||"",priority:item.priority,phone:item.phone||"",email:item.email||"",address:item.address||"",city:item.city||"",need:item.need,emergency:item.emergency_contact||"",notes:item.notes||""})),
     medicos:volunteers.data.map(item=>({id:item.id,name:item.name,spec:item.specialty,phone:item.phone||"",email:item.email||"",city:item.city||"",avail:item.availability,reg:item.registration_number||"",areas:item.areas||"",profile_id:item.profile_id})),
-    apoios:supports.data.map(item=>({id:item.id,date:item.scheduled_at,duration:Number(item.duration_minutes)||60,benef:item.beneficiary_id,med:item.volunteer_id,type:item.type,status:item.status,notes:item.notes||""})),
-    ratings:ratings.data.map(item=>({id:item.id,apoio_id:item.support_id,stars:item.stars,comment:item.comment||"",author_id:item.author_id}))
+    apoios:supportRows,
+    ratings:ratings.data.map(item=>{const support=supportRows.find(row=>row.id===item.support_id);return {id:item.id,apoio_id:item.support_id,benef:support?.benef,med:support?.med,stars:item.stars,comment:item.comment||"",author_id:item.author_id};})
   });
 }
 async function supabaseSaveData(){

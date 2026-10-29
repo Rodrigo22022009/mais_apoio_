@@ -29,6 +29,17 @@ O ficheiro `config.js` contém apenas a chave Publishable/anon, que é própria 
 
 Em **Authentication → Providers**, ativa **Email**.
 
+### Erro `email rate limit exceeded`
+
+O servidor de email de testes do Supabase é limitado e não é indicado para criar várias contas. Quando esse limite é atingido, a aplicação não consegue enviar o email de confirmação e uma nova tentativa imediata pode continuar a falhar.
+
+Para desenvolvimento local ou demonstrações, escolhe uma destas opções:
+
+1. **Recomendado:** em **Authentication → Emails → SMTP Settings**, configura um SMTP próprio (por exemplo, Brevo, Resend, SendGrid ou outro serviço SMTP). Depois de guardar, ajusta os limites em **Authentication → Rate Limits**, se necessário.
+2. **Apenas para testes:** em **Authentication → Providers → Email**, desativa temporariamente **Confirm email**. Assim, o registo não depende do envio de email. Reativa esta opção antes de publicar a aplicação.
+
+Depois de uma falha de limite, consulta primeiro **Authentication → Users** antes de repetir o registo: o utilizador pode ter sido criado sem conseguir receber a mensagem. Se existir, usa esse utilizador e confirma/aprova o perfil em `public.profiles`.
+
 Para testes locais, em **Authentication → URL Configuration**, adiciona:
 
 - `http://localhost:5500`
