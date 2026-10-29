@@ -26,7 +26,92 @@ document.getElementById("forgotPassword").onclick=async()=>{
   const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});
   showAuthMessage(error?.message||"Se o email existir, receberá uma ligação para redefinir a palavra-passe.",!error);
 };
-document.getElementById("registerForm").onsubmit=async event=>{
+
+document.getElementById("registerForm").onsubmit = async event => {
+  event.preventDefault();
+
+  const form = event.target;
+  const button = form.querySelector("button[type='submit'], button:not([type])");
+
+  if (button?.disabled) return;
+
+  const payload = {
+    name: document.getElementById("registerName").value.trim(),
+    username: document.getElementById("registerUsername").value.trim(),
+    email: document.getElementById("registerEmail").value.trim(),
+    phone: document.getElementById("registerPhone").value.trim(),
+    password: document.getElementById("registerPassword").value,
+    role: document.getElementById("registerRole").value
+  };
+
+  if (!supabaseClient) {
+    showAuthMessage("Supabase não está configurado.");
+    return;
+  }
+
+  if (!payload.email) {
+    showAuthMessage("Introduza um endereço de email válido.");
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "A criar conta...";
+  }
+
+  try {
+    const { error } = await supabaseClient.auth.signUp({
+      email: payload.email,
+      password: payload.password,
+      options: {
+        data: {
+          name: payload.name,
+          username: payload.username,
+          phone: payload.phone,
+          role: payload.role
+        }
+      }
+    });
+
+    if (error) throw error;
+
+    form.reset();
+    document.getElementById("authSwitch").click();
+
+    showAuthMessage(
+      "Pedido de registo enviado. Confirme o email, se solicitado, e aguarde a aprovação da coordenação.",
+      true
+    );
+  } catch (error) {
+    console.error("Erro ao criar perfil:", error);
+
+    const message = String(error?.message || "").toLowerCase();
+    const code = error?.code || "";
+
+    if (
+      code === "over_email_send_rate_limit" ||
+      message.includes("email rate limit exceeded")
+    ) {
+      showAuthMessage(
+        "O limite de envio de emails do Supabase foi atingido. Aguarde antes de tentar novamente. Para testes frequentes, configure um serviço SMTP próprio no Supabase."
+      );
+    } else if (code === "over_request_rate_limit") {
+      showAuthMessage(
+        "Foram feitas demasiadas tentativas. Aguarde alguns minutos antes de voltar a tentar."
+      );
+    } else {
+      showAuthMessage(
+        error?.message || "Não foi possível criar a conta. Tente novamente mais tarde."
+      );
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Criar conta";
+    }
+  }
+};
+
   event.preventDefault();
   const payload={
     name:document.getElementById("registerName").value,
