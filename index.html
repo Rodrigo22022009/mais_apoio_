@@ -58,10 +58,10 @@
 <section id="authScreen" class="auth-screen" aria-labelledby="authTitle">
   <div class="auth-panel">
     <h2 id="authTitle">Entrar no +Apoio</h2>
-    <p id="authIntro" class="text-secondary">Use o seu utilizador e palavra-passe.</p>
+    <p id="authIntro" class="text-secondary">Use o email usado no registo e a sua palavra-passe.</p>
     <div id="authMessage" class="alert d-none" role="alert"></div>
     <form id="loginForm">
-      <div class="mb-3"><label class="form-label" for="loginUsername">Utilizador</label><input id="loginUsername" class="form-control" autocomplete="username" required></div>
+      <div class="mb-3"><label class="form-label" for="loginUsername">Email</label><input id="loginUsername" type="email" class="form-control" autocomplete="username" required></div>
       <div class="mb-3"><label class="form-label" for="loginPassword">Palavra-passe</label><input id="loginPassword" type="password" class="form-control" autocomplete="current-password" required></div>
       <button class="btn btn-primary w-100">Entrar</button>
       <button id="forgotPassword" class="btn btn-link w-100 mt-2" type="button">Esqueci-me da palavra-passe</button>
@@ -69,7 +69,7 @@
     <form id="registerForm" class="d-none">
       <div class="mb-3"><label class="form-label" for="registerName">Nome completo</label><input id="registerName" class="form-control" required></div>
       <div class="mb-3"><label class="form-label" for="registerUsername">Nome de utilizador</label><input id="registerUsername" class="form-control" pattern="[a-zA-Z0-9._\-]{3,40}" required></div>
-      <div class="mb-3"><label class="form-label" for="registerEmail">Email</label><input id="registerEmail" type="email" class="form-control"></div>
+      <div class="mb-3"><label class="form-label" for="registerEmail">Email</label><input id="registerEmail" type="email" class="form-control" autocomplete="email" required></div>
       <div class="mb-3"><label class="form-label" for="registerPhone">Número de telefone</label><input id="registerPhone" type="tel" class="form-control" autocomplete="tel" placeholder="Ex.: 912 345 678" required></div>
       <div class="mb-3"><label class="form-label" for="registerRole">Perfil</label><select id="registerRole" class="form-select"><option value="beneficiario">Beneficiário</option><option value="medico">Médico voluntário</option></select></div>
       <div class="mb-3"><label class="form-label" for="registerPassword">Palavra-passe</label><input id="registerPassword" type="password" class="form-control" minlength="8" autocomplete="new-password" required></div>

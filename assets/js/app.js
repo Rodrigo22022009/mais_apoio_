@@ -19,7 +19,7 @@ document.getElementById("authSwitch").onclick=()=>{
   const registerVisible=!document.getElementById("registerForm").classList.toggle("d-none");
   document.getElementById("loginForm").classList.toggle("d-none");
   document.getElementById("authTitle").textContent=registerVisible?"Criar conta":"Entrar no +Apoio";
-  document.getElementById("authIntro").textContent=registerVisible?"A sua conta ficará pendente até ser aprovada pela coordenação.":"Use o seu utilizador e palavra-passe.";
+  document.getElementById("authIntro").textContent=registerVisible?"A sua conta ficará pendente até ser aprovada pela coordenação.":"Use o email usado no registo e a sua palavra-passe.";
   document.getElementById("authSwitch").textContent=registerVisible?"Já tenho conta":"Ainda não tenho conta";
   document.getElementById("authMessage").className="alert d-none";
 };
@@ -63,7 +63,7 @@ document.getElementById("registerForm").onsubmit = async event => {
   }
 
   try {
-    const { error } = await supabaseClient.auth.signUp({
+    const { data: signUpData, error } = await supabaseClient.auth.signUp({
       email: payload.email,
       password: payload.password,
       options: {
@@ -77,6 +77,9 @@ document.getElementById("registerForm").onsubmit = async event => {
     });
 
     if (error) throw error;
+    if (!signUpData?.user) {
+      throw new Error("O Supabase não devolveu o utilizador criado. Confirme se a aplicação está ligada ao projeto correto.");
+    }
 
     form.reset();
     document.getElementById("authSwitch").click();
@@ -117,15 +120,22 @@ document.getElementById("registerForm").onsubmit = async event => {
 document.getElementById("loginForm").onsubmit = async event => {
   event.preventDefault();
   if(!supabaseClient){showAuthMessage("Supabase não está configurado.");return;}
+  const email=loginUsername.value.trim();
+  if(!email.includes("@")){showAuthMessage("O acesso é feito com o email usado no registo, não com o nome de utilizador.");return;}
   try{
-    const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginUsername.value.trim(),password:loginPassword.value});
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:loginPassword.value});
     if(error)throw error;
     const {data:profile,error:profileError}=await supabaseClient.from("profiles").select("id,username,name,email,phone,role,status").eq("id",data.user.id).single();
     if(profileError)throw profileError;
     if(profile.status!=="approved")throw new Error("A conta ainda aguarda aprovação da coordenação.");
     currentSessionUser=profile;
   }catch(error){
-    showAuthMessage(error.message||"Não foi possível iniciar sessão.");
+    const message=String(error?.message||"");
+    showAuthMessage(
+      message.includes("Email not confirmed")
+        ? "Confirme primeiro o email recebido do Supabase."
+        : message||"Não foi possível iniciar sessão."
+    );
     return;
   }
   document.getElementById("authScreen").style.display="none";
