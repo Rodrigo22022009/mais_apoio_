@@ -26,6 +26,17 @@ function showAuthMessage(message,success=false){
   const box=document.getElementById("authMessage");
   box.textContent=message; box.className=`alert ${success?"alert-success":"alert-danger"}`;
 }
+function showResetMessage(message,success=false){
+  const box=document.getElementById("resetPasswordMessage");
+  box.textContent=message; box.className=`alert ${success?"alert-success":"alert-danger"}`;
+}
+function showUpdateMessage(message,success=false){
+  const box=document.getElementById("updatePasswordMessage");
+  box.textContent=message; box.className=`alert ${success?"alert-success":"alert-danger"}`;
+}
+function showAuthScreen(screen){
+  ["authScreen","resetPasswordScreen","updatePasswordScreen"].forEach(id=>document.getElementById(id).style.display=id===screen?"flex":"none");
+}
 document.getElementById("authSwitch").onclick=()=>{
   const registerVisible=!document.getElementById("registerForm").classList.toggle("d-none");
   document.getElementById("loginForm").classList.toggle("d-none");
@@ -34,12 +45,47 @@ document.getElementById("authSwitch").onclick=()=>{
   document.getElementById("authSwitch").textContent=registerVisible?"Já tenho conta":"Ainda não tenho conta";
   document.getElementById("authMessage").className="alert d-none";
 };
-document.getElementById("forgotPassword").onclick=async()=>{
-  const email=loginUsername.value.trim();
-  if(!supabaseClient||!email.includes("@")){showAuthMessage("Introduza o email da conta para recuperar a palavra-passe.");return;}
-  const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});
-  showAuthMessage(error?.message||"Se o email existir, receberá uma ligação para redefinir a palavra-passe.",!error);
+document.getElementById("forgotPassword").onclick=()=>{
+  resetEmail.value=loginEmail.value.trim();
+  document.getElementById("resetPasswordMessage").className="alert d-none";
+  showAuthScreen("resetPasswordScreen");
 };
+document.getElementById("backToLogin").onclick=()=>showAuthScreen("authScreen");
+document.getElementById("resetPasswordForm").onsubmit=async event=>{
+  event.preventDefault();
+  const button=event.target.querySelector("button[type='submit'], button:not([type])");
+  const email=resetEmail.value.trim();
+  if(!supabaseClient){showResetMessage("Supabase não está configurado.");return;}
+  if(button?.disabled)return;
+  button.disabled=true;
+  button.textContent="A enviar...";
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});
+  const errorMessage=String(error?.message||"").toLowerCase();
+  const rateLimited=error?.code==="over_email_send_rate_limit"||errorMessage.includes("email rate limit exceeded");
+  showResetMessage(
+    rateLimited
+      ? "O limite de envio de emails do serviço foi atingido. Aguarde alguns minutos antes de tentar novamente. Se continuar, a coordenação deve configurar um SMTP próprio no Supabase."
+      : error?.message||"Se o email existir, receberá uma ligação para redefinir a palavra-passe.",
+    !error
+  );
+  button.disabled=false;
+  button.textContent="Enviar ligação";
+};
+document.getElementById("updatePasswordForm").onsubmit=async event=>{
+  event.preventDefault();
+  if(newPassword.value!==confirmPassword.value){showUpdateMessage("As palavras-passe não coincidem.");return;}
+  if(!supabaseClient){showUpdateMessage("Supabase não está configurado.");return;}
+  const {error}=await supabaseClient.auth.updateUser({password:newPassword.value});
+  if(error){showUpdateMessage(error.message);return;}
+  showAuthScreen("authScreen");
+  showAuthMessage("Palavra-passe alterada. Já pode iniciar sessão.",true);
+  event.target.reset();
+};
+if(supabaseClient){
+  supabaseClient.auth.onAuthStateChange((event)=>{
+    if(event==="PASSWORD_RECOVERY")showAuthScreen("updatePasswordScreen");
+  });
+}
 
 document.getElementById("registerForm").onsubmit = async event => {
   event.preventDefault();
@@ -51,7 +97,6 @@ document.getElementById("registerForm").onsubmit = async event => {
 
   const payload = {
     name: document.getElementById("registerName").value.trim(),
-    username: document.getElementById("registerUsername").value.trim(),
     email: document.getElementById("registerEmail").value.trim(),
     phone: document.getElementById("registerPhone").value.trim(),
     password: document.getElementById("registerPassword").value,
@@ -80,7 +125,6 @@ document.getElementById("registerForm").onsubmit = async event => {
       options: {
         data: {
           name: payload.name,
-          username: payload.username,
           phone: payload.phone,
           role: payload.role
         }
@@ -131,7 +175,7 @@ document.getElementById("registerForm").onsubmit = async event => {
 document.getElementById("loginForm").onsubmit = async event => {
   event.preventDefault();
   if(!supabaseClient){showAuthMessage("Supabase não está configurado.");return;}
-  const email=loginUsername.value.trim();
+  const email=loginEmail.value.trim();
   if(!email.includes("@")){showAuthMessage("O acesso é feito com o email usado no registo, não com o nome de utilizador.");return;}
   try{
     const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:loginPassword.value});
