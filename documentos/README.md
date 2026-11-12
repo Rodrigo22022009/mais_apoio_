@@ -21,7 +21,7 @@ Plataforma de apoio domiciliário para beneficiários, médicos voluntários e c
 - Agenda de apoios em lista e calendário.
 - Avaliação de apoios realizados.
 - Relatórios e exportação.
-- Rota para o médico voluntário através do Google Maps.
+- Rota para o médico voluntário através do Google Maps, disponível diretamente nos pedidos aceites.
 - Todos os dados operacionais são guardados exclusivamente no Supabase.
 
 ## Base de dados

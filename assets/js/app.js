@@ -7,6 +7,17 @@ document.getElementById("enterApp").onclick=()=>{
   document.getElementById("entryScreen").style.display="none";
   document.getElementById("authScreen").style.display="flex";
 };
+function applyTheme(theme){
+  const themes=["azul-coral","roxo-creme","terracota-azul","amarelo-grafite","cinza-laranja","rosa-bordô","lavanda-azul","turquesa-marinho","verde-oliva","preto-dourado"];
+  const selected=themes.includes(theme)?theme:"azul-coral";
+  document.body.classList.remove(...themes.map(item=>`theme-${item}`));
+  document.body.classList.add(`theme-${selected}`);
+  const select=document.getElementById("themeSelect");
+  if(select)select.value=selected;
+  localStorage.setItem("apoio-theme",selected);
+}
+applyTheme(localStorage.getItem("apoio-theme")||"azul-coral");
+document.getElementById("themeSelect").onchange=event=>applyTheme(event.target.value);
 let currentSessionUser=null;
 let refreshTimer=null;
 let calendarViewDate=new Date();
@@ -438,7 +449,11 @@ function renderAll(){renderDashboard();renderBenef();renderMed();renderAvailable
 function renderRequests(){
   if(!document.getElementById("requestsTable"))return;
   const canManage=currentSessionUser?.role==="admin";
-  requestsTable.innerHTML=(data.requests||[]).map(request=>`<tr><td><strong>${esc(request.subject)}</strong><div class="small text-secondary text-truncate" style="max-width:320px">${esc(request.description)}</div></td><td>${esc(request.beneficiary_name||"—")}</td><td><span class="badge text-bg-${priorityBadge(request.priority)} badge-soft">${esc(request.priority)}</span></td><td>${formatDate(request.created_at)}</td><td>${canManage?`<select class="form-select form-select-sm" onchange="changeRequestStatus(${request.id},this.value)"><option ${request.status==="Pendente"?"selected":""}>Pendente</option><option ${request.status==="Em análise"?"selected":""}>Em análise</option><option ${request.status==="Aceite"?"selected":""}>Aceite</option><option ${request.status==="Concluído"?"selected":""}>Concluído</option><option ${request.status==="Cancelado"?"selected":""}>Cancelado</option></select>`:`<span class="badge text-bg-${request.status==="Concluído"?"success":request.status==="Cancelado"?"secondary":"primary"} badge-soft">${esc(request.status)}</span>`}</td><td>${canManage?`<button class="btn btn-sm btn-outline-primary" onclick="changeRequestStatus(${request.id},'Em análise')" title="Assumir pedido"><i class="bi bi-arrow-right-circle"></i></button>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos de apoio.</td></tr>';
+  requestsTable.innerHTML=(data.requests||[]).map(request=>{
+    const beneficiary=getBenef(request.beneficiary_id);
+    const routeButton=request.status==="Aceite"&&beneficiary?`<button class="btn btn-sm btn-outline-success ms-1" onclick="openRequestRoute(${request.id})" title="Ver rota para o domicílio"><i class="bi bi-geo-alt me-1"></i>Ver rota</button>`:"";
+    return `<tr><td><strong>${esc(request.subject)}</strong><div class="small text-secondary text-truncate" style="max-width:320px">${esc(request.description)}</div></td><td>${esc(request.beneficiary_name||beneficiary?.name||"—")}</td><td><span class="badge text-bg-${priorityBadge(request.priority)} badge-soft">${esc(request.priority)}</span></td><td>${formatDate(request.created_at)}</td><td>${canManage?`<select class="form-select form-select-sm" onchange="changeRequestStatus(${request.id},this.value)"><option ${request.status==="Pendente"?"selected":""}>Pendente</option><option ${request.status==="Em análise"?"selected":""}>Em análise</option><option ${request.status==="Aceite"?"selected":""}>Aceite</option><option ${request.status==="Concluído"?"selected":""}>Concluído</option><option ${request.status==="Cancelado"?"selected":""}>Cancelado</option></select>`:`<span class="badge text-bg-${request.status==="Concluído"?"success":request.status==="Cancelado"?"secondary":"primary"} badge-soft">${esc(request.status)}</span>`}</td><td>${canManage?`<button class="btn btn-sm btn-outline-primary" onclick="changeRequestStatus(${request.id},'Em análise')" title="Assumir pedido"><i class="bi bi-arrow-right-circle"></i></button>`:""}${routeButton}</td></tr>`;
+  }).join("")||'<tr><td colspan="6" class="empty">Ainda não existem pedidos de apoio.</td></tr>';
 }
 function openRequestModal(){requestForm.reset();bootstrap.Modal.getOrCreateInstance(requestModal).show();}
 requestForm.onsubmit=async event=>{
@@ -454,6 +469,26 @@ async function changeRequestStatus(id,status){
   const result=await supabaseClient.from("support_requests").update({status}).eq("id",id);
   if(result.error){toast("Não foi possível atualizar o pedido.");return}
   await loadRequestsData(true);toast("Estado do pedido atualizado.");
+}
+function openRequestRoute(requestId){
+  const request=data.requests.find(item=>item.id==requestId);
+  const beneficiary=request&&getBenef(request.beneficiary_id);
+  if(!beneficiary){toast("Não foi possível encontrar os dados do beneficiário.");return;}
+  const destination=[beneficiary.address,beneficiary.city].filter(Boolean).join(", ");
+  if(!destination){toast("Adicione a morada ou localidade do beneficiário primeiro.");return;}
+  const routeArea=document.getElementById("requestRouteArea");
+  const routeMap=document.getElementById("requestRouteMap");
+  const externalButton=document.getElementById("requestRouteExternal");
+  document.getElementById("requestRouteDescription").textContent=`${beneficiary.name} · ${destination}`;
+  routeMap.src=`https://maps.google.com/maps?q=${encodeURIComponent(destination)}&output=embed`;
+  externalButton.onclick=()=>openRoute(beneficiary.id);
+  routeArea.classList.remove("d-none");
+  routeArea.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function closeRequestRoute(){
+  const routeArea=document.getElementById("requestRouteArea");
+  document.getElementById("requestRouteMap").src="";
+  routeArea.classList.add("d-none");
 }
 
 function formatDate(s){const d=new Date(s);return Number.isNaN(d.getTime())?"—":d.toLocaleString("pt-PT",{dateStyle:"short",timeStyle:"short"})}

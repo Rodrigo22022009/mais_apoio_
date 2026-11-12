@@ -114,6 +114,7 @@
           <div class="text-secondary">Coordenação integrada de cuidados domiciliários</div>
         </div>
         <div class="d-flex gap-2">
+          <label class="theme-picker d-none d-md-flex align-items-center gap-2" for="themeSelect"><i class="bi bi-palette"></i><span class="visually-hidden">Tema de cores</span><select id="themeSelect" class="form-select form-select-sm" aria-label="Tema de cores"><option value="azul-coral">Azul-marinho + coral</option><option value="roxo-creme">Roxo + creme</option><option value="terracota-azul">Terracota + azul petróleo</option><option value="amarelo-grafite">Mostarda + grafite</option><option value="cinza-laranja">Ardósia + laranja</option><option value="rosa-bordô">Rosa suave + bordô</option><option value="lavanda-azul">Lavanda + azul noite</option><option value="turquesa-marinho">Turquesa + azul marinho</option><option value="verde-oliva">Oliva + areia</option><option value="preto-dourado">Grafite + dourado</option></select></label>
           <button class="btn btn-outline-secondary notification-button" id="notificationButton" type="button" title="Notificações" aria-label="Notificações" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-content="Sem novas notificações."><i class="bi bi-bell"></i><span id="notificationCount" class="badge rounded-pill text-bg-danger notification-badge d-none">0</span></button>
           <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir</button>
           <button class="btn btn-outline-secondary" onclick="exportData()"><i class="bi bi-download me-1"></i>Exportar</button>
@@ -241,6 +242,20 @@
         <div class="card app-card p-3">
           <div class="section-header"><div><h5 class="mb-1">Pedidos de apoio</h5><div class="text-secondary small">Pedidos enviados pelos beneficiários e acompanhamento da resposta.</div></div><button id="newRequestButton" class="btn btn-primary" type="button" onclick="openRequestModal()"><i class="bi bi-plus-lg me-1"></i>Novo pedido</button></div>
           <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Pedido</th><th>Beneficiário</th><th>Prioridade</th><th>Data</th><th>Estado</th><th>Ações</th></tr></thead><tbody id="requestsTable"></tbody></table></div>
+        </div>
+        <div id="requestRouteArea" class="card app-card p-3 mt-3 d-none">
+          <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+            <div>
+              <h5 class="mb-1"><i class="bi bi-geo-alt-fill text-success me-1"></i>Rota para o domicílio</h5>
+              <div id="requestRouteDescription" class="text-secondary small"></div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeRequestRoute()" aria-label="Fechar mapa"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="request-map-wrap"><iframe id="requestRouteMap" title="Mapa com a rota para o domicílio do beneficiário" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+          <div class="d-flex justify-content-between align-items-center gap-2 mt-3 flex-wrap">
+            <span class="small text-secondary"><i class="bi bi-shield-lock me-1"></i>A morada só é apresentada aos utilizadores autorizados.</span>
+            <button id="requestRouteExternal" type="button" class="btn btn-success"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir navegação no Google Maps</button>
+          </div>
         </div>
       </section>
 
