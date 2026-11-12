@@ -46,11 +46,15 @@ document.getElementById("authSwitch").onclick=()=>{
   document.getElementById("authMessage").className="alert d-none";
 };
 document.getElementById("forgotPassword").onclick=()=>{
-  resetEmail.value=loginEmail.value.trim();
+  document.getElementById("resetEmail").value=document.getElementById("loginEmail").value.trim();
   document.getElementById("resetPasswordMessage").className="alert d-none";
+  window.location.hash="recuperar";
   showAuthScreen("resetPasswordScreen");
 };
-document.getElementById("backToLogin").onclick=()=>showAuthScreen("authScreen");
+document.getElementById("backToLogin").onclick=()=>{
+  history.replaceState(null,"",window.location.pathname+window.location.search);
+  showAuthScreen("authScreen");
+};
 document.getElementById("resetPasswordForm").onsubmit=async event=>{
   event.preventDefault();
   const button=event.target.querySelector("button[type='submit'], button:not([type])");
@@ -81,6 +85,10 @@ document.getElementById("updatePasswordForm").onsubmit=async event=>{
   showAuthMessage("Palavra-passe alterada. Já pode iniciar sessão.",true);
   event.target.reset();
 };
+if(window.location.hash==="#recuperar"){
+  document.getElementById("entryScreen").style.display="none";
+  showAuthScreen("resetPasswordScreen");
+}
 if(supabaseClient){
   supabaseClient.auth.onAuthStateChange((event)=>{
     if(event==="PASSWORD_RECOVERY")showAuthScreen("updatePasswordScreen");
